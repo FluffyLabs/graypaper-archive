@@ -10,6 +10,7 @@ RUN apt-get update && \
         texlive-fonts-extra \
         texlive-bibtex-extra \
         texlive-xetex \
+        biber \
         wget \
         gdebi-core && \
     apt-get clean && \

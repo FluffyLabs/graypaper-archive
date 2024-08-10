@@ -16,6 +16,12 @@ docker pull $PDF2HTMLEX_IMG
 docker run --platform linux/amd64 -ti --rm \
   -v "$(pwd)/dist:/pdf" \
   -w /pdf $PDF2HTMLEX_IMG \
-  --zoom 1.3 graypaper-$VERSION.pdf
+  --zoom 1.3 \
+  --decompose-ligature 1 \
+  --embed-font 0 \
+  --embed-outline 1 \
+  --process-outline 1 \
+  --printing 0 \
+  graypaper-$VERSION.pdf
 
 ./scripts/update-metadata.sh
