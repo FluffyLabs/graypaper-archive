@@ -1,5 +1,5 @@
 # Use the official Ubuntu Jammy image as a base
-FROM ubuntu:jammy
+FROM node:22
 
 # Set the environment to non-interactive
 ENV DEBIAN_FRONTEND=noninteractive
@@ -7,6 +7,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Update the package list and install required packages
 RUN apt-get update && \
     apt-get install -y \
+        rsync \
         texlive-fonts-extra \
         texlive-bibtex-extra \
         texlive-xetex \

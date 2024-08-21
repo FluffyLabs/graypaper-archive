@@ -11,6 +11,6 @@ then
   exit 0
 fi
 cd -
-./scripts/build-html-docker.sh
+./scripts/build-pdf-docker.sh
 
 git commit -am "Bump graypaper."

@@ -1,0 +1,13 @@
+{
+  "name": "graypaper-archive",
+  "description": "Historical versions of the Gray Paper (HTML &amp; PDF)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "tsx": "^4.17.0"
+  }
+}
