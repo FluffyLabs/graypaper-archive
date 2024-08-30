@@ -13,4 +13,4 @@ fi
 cd -
 ./scripts/build-pdf-docker.sh
 
-git commit -am "Bump graypaper."
+git commit -am "Bump graypaper ${CURRENT}"
