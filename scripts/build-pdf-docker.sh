@@ -15,3 +15,5 @@ docker run -v "$(pwd):/workspace" -e VERSION=${VERSION} -it gp-pdf-build
 
 # Clean up unused files
 rm -f ./dist/*.aux ./dist/*.bcf ./dist/*.log ./dist/*.out ./dist/*.xml ./dist/*.synctex ./dist/*.bbl ./dist/*.blg
+
+./scripts/update-metadata.sh

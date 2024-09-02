@@ -3,8 +3,12 @@ import * as fs from "node:fs/promises";
 const EXPECTED_ARGUMENTS_N = 4;
 const INPUT_PATTERN = /Input:([0-9]+):(.+)/;
 const START_PAGE_PATTERN = /\{([0-9]+)$/;
-const VERTICAL_BLOCK_PATTERN = /\[([0-9]+),([0-9]+):(-?[0-9]+),(-?[0-9]+):(-?[0-9]+),(-?[0-9]+),(-?[0-9]+)/;
-const HORIZONTAL_BLOCK_PATTERN = /\(([0-9]+),([0-9]+):(-?[0-9]+),(-?[0-9]+):(-?[0-9]+),(-?[0-9]+),(-?[0-9]+)/;
+const VERTICAL_BLOCK_PATTERN =
+  /\[([0-9]+),([0-9]+):(-?[0-9]+),(-?[0-9]+):(-?[0-9]+),(-?[0-9]+),(-?[0-9]+)/;
+const HORIZONTAL_BLOCK_PATTERN =
+  /\(([0-9]+),([0-9]+):(-?[0-9]+),(-?[0-9]+):(-?[0-9]+),(-?[0-9]+),(-?[0-9]+)/;
+const DOCUMENT_WIDTH_IN_SYNCTEX_UNITS = 39158297.17696512;
+const DOCUMENT_HEIGHT_IN_SYNCTEX_UNITS = 55381020.29313637;
 
 function synctexToObject(synctex) {
   const lines = synctex.split("\n");
@@ -31,15 +35,17 @@ function synctexToObject(synctex) {
       continue;
     }
 
-    matches = lines[i].match(VERTICAL_BLOCK_PATTERN) || lines[i].match(HORIZONTAL_BLOCK_PATTERN);
+    matches =
+      lines[i].match(VERTICAL_BLOCK_PATTERN) ||
+      lines[i].match(HORIZONTAL_BLOCK_PATTERN);
     if (matches) {
       result.pages[currentPage].push({
         fileId: Number.parseInt(matches[1]),
         line: Number.parseInt(matches[2]),
-        left: Number.parseInt(matches[3]),
-        top: Number.parseInt(matches[4]),
-        width: Number.parseInt(matches[5]),
-        height: Number.parseInt(matches[6]),
+        left: Number.parseInt(matches[3]) / DOCUMENT_WIDTH_IN_SYNCTEX_UNITS,
+        top: Number.parseInt(matches[4]) / DOCUMENT_HEIGHT_IN_SYNCTEX_UNITS,
+        width: Number.parseInt(matches[5]) / DOCUMENT_WIDTH_IN_SYNCTEX_UNITS,
+        height: Number.parseInt(matches[6]) / DOCUMENT_HEIGHT_IN_SYNCTEX_UNITS,
       });
     }
   }

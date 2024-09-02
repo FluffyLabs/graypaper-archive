@@ -1,4 +1,4 @@
-# Use the official Ubuntu Jammy image as a base
+# The node image is running Debian
 FROM node:22
 
 # Set the environment to non-interactive
