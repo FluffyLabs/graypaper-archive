@@ -1,13 +1,30 @@
 {
   "latest": "e206e2663c160a227d13c49cb08f917416d751f4",
   "versions": {
+    "4369a96e787b29c91bae5996c66054717020082e": {
+      "hash": "4369a96e787b29c91bae5996c66054717020082e",
+      "date": "Wed Jul 31 2024 21:04:53 +0900",
+      "legacy": true
+    },
+    "4866b59bc0f62158da03a6bea13284a138f2eee5": {
+      "hash": "4866b59bc0f62158da03a6bea13284a138f2eee5",
+      "date": "Sun Aug 4 2024 12:15:10 +0200",
+      "legacy": true
+    },
+    "1b081fe3e7bfeee6e8837749046690254b61667e": {
+      "hash": "1b081fe3e7bfeee6e8837749046690254b61667e",
+      "date": "Fri, 9 Aug 2024 14:26:05 +0200",
+      "legacy": true
+    },
     "c56dfb8763aeae3de27b7ca0d4453f6c96d34d44": {
       "hash": "c56dfb8763aeae3de27b7ca0d4453f6c96d34d44",
-      "date": "Sun, 18 Aug 2024 20:53:32 +0900"
+      "date": "Sun, 18 Aug 2024 20:53:32 +0900",
+      "legacy": true
     },
     "e206e2663c160a227d13c49cb08f917416d751f4": {
       "hash": "e206e2663c160a227d13c49cb08f917416d751f4",
-      "date": "Sun, 25 Aug 2024 03:19:41 +0900"
+      "date": "Sun, 25 Aug 2024 03:19:41 +0900",
+      "legacy": true
     }
   }
 }
