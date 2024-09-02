@@ -46,6 +46,8 @@ function synctexToObject(synctex) {
         top: Number.parseInt(matches[4]) / DOCUMENT_HEIGHT_IN_SYNCTEX_UNITS,
         width: Number.parseInt(matches[5]) / DOCUMENT_WIDTH_IN_SYNCTEX_UNITS,
         height: Number.parseInt(matches[6]) / DOCUMENT_HEIGHT_IN_SYNCTEX_UNITS,
+        pageNumber: currentPage,
+        index: result.pages[currentPage].length,
       });
     }
   }
