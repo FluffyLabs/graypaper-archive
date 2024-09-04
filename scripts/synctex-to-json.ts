@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises";
 
 const EXPECTED_ARGUMENTS_N = 4;
-const INPUT_PATTERN = /Input:([0-9]+):(.+)/;
+const INPUT_PATTERN = /Input:([0-9]+):\/workspace\/graypaper\/.\/(.+\.tex)/;
 const START_PAGE_PATTERN = /\{([0-9]+)$/;
 const VERTICAL_BLOCK_PATTERN =
   /\[([0-9]+),([0-9]+):(-?[0-9]+),(-?[0-9]+):(-?[0-9]+),(-?[0-9]+),(-?[0-9]+)/;
