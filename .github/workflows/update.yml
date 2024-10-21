@@ -1,0 +1,30 @@
+name: Update Graypaper
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check_for_updates:
+    runs-on: ubuntu-latest
+    outputs:
+      needs_update: expr ${{steps.local_version.outputs.VERSION}} == ${{steps.remote_version.outputs.VERSION}}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+       submodules: 'true'
+    - name: Check local version
+      id: local_version
+      run: echo "VERSION=${cat graypaper/VERSION}" >> "$GITHUB_OUTPUT"
+    - name: Get latest graypaper
+      id: remote_version
+      run: |
+        git submodule update --remote
+        echo "VERSION=${cat graypaper/VERSION}" >> "$GITHUB_OUTPUT"
+  update:
+    runs-on: ubuntu-latest
+    needs: check_for_updates
+    if: needs.check_for_updates.outputs.needs_update == 1
+    steps:
+      - name: Update required
+        run: echo "Update required"
