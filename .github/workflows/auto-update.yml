@@ -1,8 +1,9 @@
 name: Update Graypaper
 
 on:
+  workflow_dispatch:
   schedule:
-    - cron: "38 * * * *" # using an arbitrary minute to avoid high traffic
+    - cron: "38 13 * * *" # using an arbitrary time to avoid high traffic
 
 jobs:
   check_for_updates:
