@@ -7,24 +7,26 @@ on:
 
 jobs:
   check_for_updates:
-    name: Check for updates
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
     outputs:
-      local_version: ${{steps.local_version.outputs.VERSION}}
-      remote_version: ${{steps.remote_version.outputs.VERSION}}
+      has_updates: ${{steps.remote_release.outputs.VERSION != steps.local_release.outputs.VERSION}}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
         submodules: 'true'
-    - name: Check local version
-      id: local_version
-      run: echo "VERSION=$(cat graypaper/VERSION)" >> "$GITHUB_OUTPUT"
-    - name: Get latest graypaper and compare versions
-      id: remote_version
+    - name: What's the latest graypaper version?
+      id: remote_release
       run: |
-        git submodule update --remote
-        echo "VERSION=$(cat graypaper/VERSION)" >> "$GITHUB_OUTPUT"
+        echo "VERSION=$(gh api /repos/gavofyork/graypaper/releases/latest | jq -r '.tag_name')" >> "$GITHUB_OUTPUT"
+    - name: What's the version we're using?
+      id: local_release
+      run: |
+        cd graypaper
+        echo $(git describe --tags --abbrev=0)
+        echo "VERSION=$(git describe --tags --abbrev=0)" >> "$GITHUB_OUTPUT"
   update:
     name: Update
     runs-on: ubuntu-latest
@@ -34,7 +36,7 @@ jobs:
       pull-requests: write
     env:
       GH_TOKEN: ${{ github.token }}
-    if: needs.check_for_updates.outputs.local_version != needs.check_for_updates.outputs.remote_version
+    if: needs.check_for_updates.outputs.has_updates
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -45,7 +47,9 @@ jobs:
         run: |
           git submodule update --remote
           scripts/build-pdf-docker.sh
-          echo "VERSION=v$(cat graypaper/VERSION)" >> "$GITHUB_OUTPUT"
+          cd graypaper
+          echo "VERSION=v$(git describe --tags --abbrev=0)" >> "$GITHUB_OUTPUT"
+          cd ..
       - name: Commit changes to the main branch
         uses: EndBug/add-and-commit@v9
         with:
