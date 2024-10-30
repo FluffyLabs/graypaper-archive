@@ -25,7 +25,6 @@ jobs:
       id: local_release
       run: |
         cd graypaper
-        echo $(git describe --tags --abbrev=0)
         echo "VERSION=$(git describe --tags --abbrev=0)" >> "$GITHUB_OUTPUT"
   update:
     name: Update
