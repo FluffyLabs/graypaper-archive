@@ -48,7 +48,7 @@ jobs:
           git submodule update --remote
           scripts/build-pdf-docker.sh
           cd graypaper
-          echo "VERSION=v$(git describe --tags --abbrev=0)" >> "$GITHUB_OUTPUT"
+          echo "VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))" >> "$GITHUB_OUTPUT"
           cd ..
       - name: Use git as github actions bot
         run: |
