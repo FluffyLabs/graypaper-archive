@@ -58,11 +58,12 @@ jobs:
           git config --global user.email $BOT_EMAIL
       - name: Create a PR and merge changes to the main branch
         run: |
-          git checkout -b feature/${{steps.graypaper_update.outputs.VERSION}}
+          BRANCH_NAME="feature/${{steps.graypaper_update.outputs.VERSION}}"
+          git checkout -b $BRANCH_NAME
           git add .
           git commit -m "Bumped Graypaper to ${{steps.graypaper_update.outputs.VERSION}}"
-          git push --set-upstream origin feature/${{steps.graypaper_update.outputs.VERSION}}
-          gh pr create -B main -H feature/$VERSION \
+          git push --set-upstream origin $BRANCH_NAME
+          gh pr create -B main -H $BRANCH_NAME \
             --title "Bump Graypaper to ${{steps.graypaper_update.outputs.VERSION}}" --body ""
           gh pr merge --merge --delete-branch
       - name: Create Release
