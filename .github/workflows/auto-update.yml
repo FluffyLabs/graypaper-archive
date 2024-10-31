@@ -65,7 +65,7 @@ jobs:
           git push --set-upstream origin $BRANCH_NAME
           gh pr create -B main -H $BRANCH_NAME \
             --title "Bump Graypaper to ${{steps.graypaper_update.outputs.VERSION}}" --body ""
-          gh pr merge --merge --delete-branch
+          gh pr merge --rebase --delete-branch
       - name: Create Release
         run: |
           gh release create ${{ steps.graypaper_update.outputs.VERSION }} \
