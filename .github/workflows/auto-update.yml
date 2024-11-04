@@ -22,12 +22,14 @@ jobs:
       id: remote_release
       run: |
         echo "VERSION=$(gh api /repos/gavofyork/graypaper/releases/latest | jq -r '.tag_name')" >> "$GITHUB_OUTPUT"
+        echo $(gh api /repos/gavofyork/graypaper/releases/latest | jq -r '.tag_name')
     - name: What's the version we're using?
       id: local_release
       run: |
         cd graypaper
         git fetch --tags
         echo "VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))" >> "$GITHUB_OUTPUT"
+        echo $(git describe --tags $(git rev-list --tags --max-count=1))
   update:
     name: Update
     runs-on: ubuntu-latest
