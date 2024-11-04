@@ -1,6 +1,9 @@
 name: Update Graypaper
 
 on:
+  push:
+    branches:
+      - 'feature/auto-update-workflow'
   workflow_dispatch:
   schedule:
     - cron: "38 13 * * *" # using an arbitrary time to avoid high traffic
@@ -12,7 +15,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     outputs:
-      has_updates: ${{steps.remote_release.outputs.VERSION == steps.local_release.outputs.VERSION}}
+      has_updates: ${{steps.remote_release.outputs.VERSION != steps.local_release.outputs.VERSION}}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -30,11 +33,6 @@ jobs:
         git fetch --tags
         echo "VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))" >> "$GITHUB_OUTPUT"
         echo $(git describe --tags $(git rev-list --tags --max-count=1))
-    - name: Compare versions debug
-      run: |
-        echo "${{steps.remote_release.outputs.VERSION}}"
-        echo "${{steps.local_release.outputs.VERSION}}"
-        echo "${{steps.remote_release.outputs.VERSION != steps.local_release.outputs.VERSION}}"
   update:
     name: Update
     runs-on: ubuntu-latest
