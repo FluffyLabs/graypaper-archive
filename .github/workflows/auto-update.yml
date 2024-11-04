@@ -34,7 +34,7 @@ jobs:
       run: |
         echo "${{steps.remote_release.outputs.VERSION}}"
         echo "${{steps.local_release.outputs.VERSION}}"
-        echo $("${{steps.remote_release.outputs.VERSION}}" != "${{steps.local_release.outputs.VERSION}}")
+        echo "${{steps.remote_release.outputs.VERSION != steps.local_release.outputs.VERSION}}"
   update:
     name: Update
     runs-on: ubuntu-latest
