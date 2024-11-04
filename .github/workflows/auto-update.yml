@@ -12,7 +12,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     outputs:
-      has_updates: ${{steps.remote_release.outputs.VERSION != steps.local_release.outputs.VERSION}}
+      has_updates: ${{steps.remote_release.outputs.VERSION == steps.local_release.outputs.VERSION}}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
