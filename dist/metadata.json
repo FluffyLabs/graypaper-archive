@@ -1,5 +1,5 @@
 {
-  "latest": "85129dacf739e76ead2065bb5b84a999e8ac71e7",
+  "latest": "68eaa1fc6f2d32dd4ef6cececbe1f4ecf705d40a",
   "versions": {
     "4369a96e787b29c91bae5996c66054717020082e": {
       "hash": "4369a96e787b29c91bae5996c66054717020082e",
@@ -95,6 +95,11 @@
       "name": "0.6.3",
       "hash": "85129dacf739e76ead2065bb5b84a999e8ac71e7",
       "date": "Mon, 3 Mar 2025 16:44:08 +0800"
+    },
+    "68eaa1fc6f2d32dd4ef6cececbe1f4ecf705d40a": {
+      "name": "0.6.4",
+      "hash": "68eaa1fc6f2d32dd4ef6cececbe1f4ecf705d40a",
+      "date": "Tue, 18 Mar 2025 20:18:43 +0100"
     }
   }
 }
