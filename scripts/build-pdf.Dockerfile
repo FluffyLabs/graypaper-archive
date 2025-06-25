@@ -11,6 +11,7 @@ RUN apt-get update && \
         texlive-fonts-extra \
         texlive-bibtex-extra \
         texlive-xetex \
+        texlive-science \
         biber \
         wget \
         gdebi-core && \
