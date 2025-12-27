@@ -1,0 +1,89 @@
+name: Nightly Build
+
+on:
+  push:
+    branches:
+      - 'feature/nightly-workflow'
+  workflow_dispatch:
+  schedule:
+    - cron: "13 13 * * *" # using an arbitrary time to avoid high traffic 
+
+jobs:
+  check_for_updates:
+    name: Check for updates
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    outputs:
+      has_updates: ${{ steps.compare.outputs.HAS_UPDATES }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: 'true'
+    - name: Get latest commit from graypaper master
+      id: remote_commit
+      run: |
+        REMOTE_HASH=$(gh api /repos/gavofyork/graypaper/commits/master --jq '.sha')
+        echo "HASH=$REMOTE_HASH" >> "$GITHUB_OUTPUT"
+        echo "Remote master HEAD: $REMOTE_HASH"
+    - name: Get current nightly hash from metadata
+      id: local_nightly
+      run: |
+        LOCAL_HASH=$(jq -r '.nightly.hash // ""' ./dist/metadata.json)
+        echo "HASH=$LOCAL_HASH" >> "$GITHUB_OUTPUT"
+        echo "Local nightly hash: $LOCAL_HASH"
+    - name: Compare versions
+      id: compare
+      run: |
+        if [ "${{ steps.remote_commit.outputs.HASH }}" != "${{ steps.local_nightly.outputs.HASH }}" ]; then
+          echo "HAS_UPDATES=true" >> "$GITHUB_OUTPUT"
+          echo "New commits detected, will rebuild nightly"
+        else
+          echo "HAS_UPDATES=false" >> "$GITHUB_OUTPUT"
+          echo "No new commits, skipping build"
+        fi
+
+  build:
+    name: Build Nightly
+    runs-on: ubuntu-latest
+    needs: check_for_updates
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    if: needs.check_for_updates.outputs.has_updates == 'true'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+      - name: Update graypaper submodule to latest master
+        run: |
+          cd graypaper
+          git fetch origin master
+          git checkout origin/master
+          cd ..
+      - name: Build nightly PDF
+        run: |
+          scripts/build-pdf-docker.sh nightly
+      - name: Update metadata
+        run: |
+          scripts/update-metadata.sh nightly
+      - name: Use git as github actions bot
+        run: |
+          BOT_NAME="github-actions[bot]"
+          BOT_EMAIL="$(gh api /users/github-actions[bot] --jq '.id')+$BOT_NAME@users.noreply.github.com"
+          git config --global user.name "$BOT_NAME"
+          git config --global user.email "$BOT_EMAIL"
+      - name: Create PR and merge changes
+        run: |
+          BRANCH_NAME="nightly/$(date -u +%Y-%m-%d)"
+          git checkout -b $BRANCH_NAME
+          git add .
+          git commit -m "Update nightly build ($(date -u +%Y-%m-%d))"
+          git push --set-upstream origin $BRANCH_NAME
+          gh pr create -B main -H $BRANCH_NAME \
+            --title "Update nightly build ($(date -u +%Y-%m-%d))" --body ""
+          gh pr merge --rebase --delete-branch
