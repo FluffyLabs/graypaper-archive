@@ -68,9 +68,6 @@ jobs:
       - name: Build nightly PDF
         run: |
           scripts/build-pdf-docker.sh nightly
-      - name: Update metadata
-        run: |
-          scripts/update-metadata.sh nightly
       - name: Use git as github actions bot
         run: |
           BOT_NAME="github-actions[bot]"
