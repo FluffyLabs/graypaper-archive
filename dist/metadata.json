@@ -1,5 +1,5 @@
 {
-  "latest": "nightly",
+  "latest": "ab2cdbd5b070ba2176e8dd830b06401ce05a954d",
   "versions": {
     "4369a96e787b29c91bae5996c66054717020082e": {
       "hash": "4369a96e787b29c91bae5996c66054717020082e",
@@ -130,11 +130,6 @@
       "name": "0.7.2",
       "hash": "ab2cdbd5b070ba2176e8dd830b06401ce05a954d",
       "date": "Mon, 15 Sep 2025 14:04:37 +0900"
-    },
-    "nightly": {
-      "name": "0.7.1",
-      "hash": "nightly",
-      "date": "Wed, 26 Nov 2025 06:31:27 +0000"
     }
   },
   "nightly": {
