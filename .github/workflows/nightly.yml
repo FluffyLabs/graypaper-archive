@@ -21,12 +21,12 @@ jobs:
       uses: actions/checkout@v4
       with:
         submodules: 'true'
-    - name: Get latest commit from graypaper master
+    - name: Get latest commit from graypaper main
       id: remote_commit
       run: |
-        REMOTE_HASH=$(gh api /repos/gavofyork/graypaper/commits/master --jq '.sha')
+        REMOTE_HASH=$(gh api /repos/gavofyork/graypaper/commits/main --jq '.sha')
         echo "HASH=$REMOTE_HASH" >> "$GITHUB_OUTPUT"
-        echo "Remote master HEAD: $REMOTE_HASH"
+        echo "Remote main HEAD: $REMOTE_HASH"
     - name: Get current nightly hash from metadata
       id: local_nightly
       run: |
@@ -59,11 +59,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: 'true'
-      - name: Update graypaper submodule to latest master
+      - name: Update graypaper submodule to latest main
         run: |
           cd graypaper
-          git fetch origin master
-          git checkout origin/master
+          git fetch origin main
+          git checkout origin/main
           cd ..
       - name: Build nightly PDF
         run: |
