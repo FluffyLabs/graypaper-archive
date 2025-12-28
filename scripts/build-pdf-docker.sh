@@ -3,7 +3,11 @@
 set -uex
 
 cd graypaper
-export VERSION="$(git rev-parse HEAD)"
+if [ "${1:-}" = "nightly" ]; then
+  export VERSION="nightly"
+else
+  export VERSION="$(git rev-parse HEAD)"
+fi
 cd -
 
 # Fetch docker images
