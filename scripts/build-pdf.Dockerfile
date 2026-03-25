@@ -13,6 +13,7 @@ RUN apt-get update && \
         texlive-xetex \
         texlive-science \
         biber \
+        pandoc \
         wget \
         gdebi-core && \
     apt-get clean && \

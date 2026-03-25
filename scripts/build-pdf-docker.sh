@@ -15,12 +15,14 @@ if [ "${1:-}" = "nightly" ]; then
     IS_RELEASED=$(jq -r --arg hash "$OLD_NIGHTLY_HASH" '.versions[$hash] // empty' ./dist/metadata.json)
     if [ -z "$IS_RELEASED" ]; then
       rm -f "./dist/graypaper-${OLD_NIGHTLY_HASH}.pdf"
+      rm -f "./dist/graypaper-${OLD_NIGHTLY_HASH}.md"
       rm -f "./dist/graypaper-${OLD_NIGHTLY_HASH}.synctex.json"
       rm -rf "./dist/tex-${OLD_NIGHTLY_HASH}"
     fi
   fi
   # One-time cleanup of legacy literal "nightly" named files
   rm -f "./dist/graypaper-nightly.pdf"
+  rm -f "./dist/graypaper-nightly.md"
   rm -f "./dist/graypaper-nightly.synctex.json"
   rm -rf "./dist/tex-nightly"
 fi

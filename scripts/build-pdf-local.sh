@@ -24,3 +24,12 @@ mv dist/graypaper.synctex.json dist/graypaper-${VERSION:-latest}.synctex.json
 
 rm -rf dist/tex-${VERSION:-latest}
 mv dist/tex dist/tex-${VERSION:-latest}
+
+# Generate markdown from LaTeX sources
+GP_VERSION=$(cat graypaper/VERSION 2>/dev/null | tr -d '[:space:]' || echo "unknown")
+GP_DATE=$(cd graypaper && git show --no-patch --format=%aI 2>/dev/null || echo "unknown")
+
+/workspace/scripts/tex-to-md.sh \
+  graypaper \
+  /workspace/dist/graypaper-${VERSION:-latest}.md \
+  "$GP_VERSION" "$GP_DATE" "${VERSION:-latest}"
