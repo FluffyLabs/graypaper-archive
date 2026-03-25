@@ -3,7 +3,8 @@
 set -uex
 
 cd graypaper
-export VERSION="$(git rev-parse HEAD)"
+VERSION="$(git rev-parse HEAD)"
+export VERSION
 cd -
 
 # If this is a nightly build, clean up previous nightly files
