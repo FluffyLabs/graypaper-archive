@@ -4,7 +4,7 @@ subtitle: "A Mostly-Coherent Trustless Supercomputer"
 author: "Dr. Gavin Wood"
 version: "0.8.0"
 date: "unknown"
-hash: "c72d861af59475a083a10da69a506c6d411ef8f9"
+hash: "b76e637c0901f1beb6fc7a63f4e64f8707b94baf"
 ---
 
 We present a comprehensive and formal definition of JAM, a protocol combining elements of both *Polkadot* and *Ethereum*. In a single coherent model, JAM provides a global singleton permissionless object environment---much like the smart-contract environment pioneered by Ethereum---paired with secure sideband computation parallelized over a scalable node network, a proposition pioneered by Polkadot.
@@ -463,8 +463,7 @@ The [pvm]{.smallcaps} is fully defined in appendix [24](#sec:virtualmachine){ref
     \end{aligned}
   \,}$$
 
-We refer to the time-proportional computational steps as *gas* (much like in the *YP*) and limit it to a 64-bit quantity. Within the context of the [pvm]{.smallcaps}, $\gascounter \in \gas$ is typically used to denote gas, but we may also use $\gascounter \in \signedgas$ internally within the definition of the [pvm]{.smallcaps} where it may be convenient. $$\label{eq:gasregentry}
-  \signedgas \equiv \Z_{-2^{63}\dots2^{63}}\ ,\quad
+We refer to the time-proportional computational steps as *gas* (much like in the *YP*) and limit it to a 64-bit quantity. Within the context of the [pvm]{.smallcaps}, $\gascounter \in \gas$ is typically used to denote gas. $$\label{eq:gasregentry}
   \gas \equiv \Nbits{64}\ ,\quad
   \pvmreg \equiv \Nbits{64}$$
 
@@ -941,7 +940,7 @@ There are two entry-points in the code:
 
 Refinement and accumulation are described in more detail in sections [14.4](#sec:computeworkreport){reference-type="ref" reference="sec:computeworkreport"} and [12.2](#sec:accumulationexecution){reference-type="ref" reference="sec:accumulationexecution"} respectively.
 
-As stated in appendix [24](#sec:virtualmachine){reference-type="ref" reference="sec:virtualmachine"}, execution time in the JAM virtual machine is measured deterministically in units of *gas*, represented as a natural number less than $2^{64}$ and formally denoted $\gas$. We may also use $\signedgas$ to denote the set $\Z_{-2^{63}\dots2^{63}}$ if the quantity may be negative. There are two limits specified in the account, which determine the minimum gas required in order to execute the *Accumulate* entry-point of the service's code. $\saNminaccgas$ is the minimum gas required per work-item, while $\saNminmemogas$ is the minimum gas required per deferred-transfer.
+As stated in appendix [24](#sec:virtualmachine){reference-type="ref" reference="sec:virtualmachine"}, execution time in the JAM virtual machine is measured deterministically in units of *gas*, represented as a natural number less than $2^{64}$ and formally denoted $\gas$. There are two limits specified in the account, which determine the minimum gas required in order to execute the *Accumulate* entry-point of the service's code. $\saNminaccgas$ is the minimum gas required per work-item, while $\saNminmemogas$ is the minimum gas required per deferred-transfer.
 
 ## 9.2 Preimage Lookups {#sec:lookups}
 
@@ -2845,7 +2844,7 @@ We also have to adjust the state based on the executed instruction, to force a g
     \top &\otherwise
   \end{cases}$$
 
-We define $\varepsilon$ together with the posterior values of regular execution (denoted as prime) of each of the items of the machine state as being in accordance with the table below. When transitioning machine state for an instruction, a number of conditions typically hold true and instructions are defined essentially by their exceptions to these rules. Specifically, the machine does not halt, the instruction counter increments by one and [ram]{.smallcaps} & registers are unchanged. Formally: $$\varepsilon = \blacktriangleright,\quad \imath' = \imath + 1 + \text{skip}(\imath),\quad \registers' = \registers,\quad{\memory}' = {\memory}\text{ except as indicated }$$
+We define $\varepsilon$ together with the posterior values of regular execution (denoted as prime) of each of the items of the machine state as being in accordance with the table below. When transitioning machine state for an instruction, a number of conditions typically hold true and instructions are defined essentially by their exceptions to these rules. Specifically, the machine does not halt, the instruction counter increments by one and [ram]{.smallcaps} & registers are unchanged. Formally: $$\varepsilon = \blacktriangleright,\quad \imath' = \imath + 1 + \text{skip}(\imath),\quad \registers' = \registers,\quad{\memory}' = {\memory}\qquad\text{except as indicated}$$
 
 We define signed/unsigned transitions for various octet widths: $$\begin{aligned}
   \label{eq:signedfunc}
@@ -3329,27 +3328,27 @@ An extended version of the [pvm]{.smallcaps} invocation which is able to progres
     \end{aligned}
     }
     &\to
-    \tuple{\set{\panic, \oog, \halt} \cup \set{\fault} \times \pvmreg, \pvmreg, \signedgas, \bool, \sequence[13]{\pvmreg}, \ram, X}\\
-    \tup{\pvmNblob, \imath, \gascounter, \gaschargedflag, \registers, {\memory}, f, \mathbf{x}} &\mapsto \begin{cases}
+    \tuple{\set{\panic, \oog, \halt} \cup \set{\fault} \times \pvmreg, \pvmreg, \gas, \bool, \sequence[13]{\pvmreg}, \ram, X}\\
+    \tup{\pvmNblob, \imath, \gascounter, \gaschargedflag, \registers, {\memory}, f, \context} &\mapsto \begin{cases}
       \multicolumn{2}{l}{\text{let }(\varepsilon', \imath', \gascounter', \gaschargedflag', \registers', {\memory}') = \Psi(\pvmNblob, \imath, \gascounter, \gaschargedflag, \registers, {\memory}):} \\[8pt]
-      \tup{\varepsilon', \imath', \gascounter', \gaschargedflag', \registers', {\memory}', \mathbf{x}} &\when \varepsilon' \in \set{ \halt, \panic, \oog } \cup \set{\fault} \times \pvmreg \\[4pt]
+      \tup{\varepsilon', \imath', \gascounter', \gaschargedflag', \registers', {\memory}', \context} &\when \varepsilon' \in \set{ \halt, \panic, \oog } \cup \set{\fault} \times \pvmreg \\[4pt]
       \begin{aligned}
-        &\Psi_H^*(\pvmNblob, \imath'', \gascounter'', \gaschargedflag', \registers'', {\memory}'', f, \mathbf{x}'')\\[2pt]
+        &\Psi_H^*(\pvmNblob, \imath'', \gascounter'', \gaschargedflag', \registers'', {\memory}'', f, \context'')\\[2pt]
         &\quad \where \imath'' = \imath' + 1 + \text{skip}(\imath')
       \end{aligned}
        &\when \bigwedge\abracegroup[\;]{
         &\varepsilon' = \host \times h\\[2pt]
-        &\tup{\blacktriangleright, \gascounter'', \registers'', {\memory}'', \mathbf{x}''} = f(h, \gascounter', \registers', {\memory}', \mathbf{x})
+        &\tup{\blacktriangleright, \gascounter'', \registers'', {\memory}'', \context''} = f(h, \gascounter', \registers', {\memory}', \context)
       }\\[8pt]
-      \tup{\varepsilon'', \imath', \gascounter'', \gaschargedflag', \registers'', {\memory}'', \mathbf{x}''} &\when  \bigwedge\abracegroup[\;]{
+      \tup{\varepsilon'', \imath', \gascounter'', \gaschargedflag', \registers'', {\memory}'', \context''} &\when  \bigwedge\abracegroup[\;]{
         &\varepsilon' = \host \times h\\[2pt]
-        &\tup{\varepsilon'', \gascounter'', \registers'', {\memory}'', \mathbf{x}''} = f(h, \gascounter', \registers', {\memory}', \mathbf{x})\\[2pt]
-        &\varepsilon'' \in \set{\panic, \halt, \oog}
+        &\tup{\varepsilon'', \gascounter'', \registers'', {\memory}'', \context''} = f(h, \gascounter', \registers', {\memory}', \context)\\[2pt]
+        &\varepsilon'' \in \set{\panic, \oog}
       }\\[8pt]
     \end{cases} \\
     }\!\!\!\!\!\!\!\!\\
-    &\Psi_H(\pvmNblob, \imath, \gascounter, \registers, {\memory}, f, \mathbf{x}) \equiv \Psi_H^*(\pvmNblob, \imath, \gascounter, \bot, \registers, {\memory}, f, \mathbf{x})\\
-    &\contextmutator{X} \equiv \tuple{\N, \gas, \sequence[13]{\pvmreg}, \ram, X} \to \tuple{\set{\blacktriangleright, \halt, \panic, \oog}, \gas, \sequence[13]{\pvmreg}, \ram, X}\end{aligned}$$
+    &\Psi_H(\pvmNblob, \imath, \gascounter, \registers, {\memory}, f, \context) \equiv \Psi_H^*(\pvmNblob, \imath, \gascounter, \bot, \registers, {\memory}, f, \context)\\
+    &\contextmutator{X} \equiv \tuple{\N, \gas, \sequence[13]{\pvmreg}, \ram, X} \to \tuple{\set{\blacktriangleright, \panic, \oog}, \gas, \sequence[13]{\pvmreg}, \ram, X}\end{aligned}$$
 
 As with $\Phi$, on exit the instruction counter references the instruction *which caused the exit* and the machine state is that prior to this instruction. Should the machine be invoked again using this instruction counter and code, then the same instruction which caused the exit would be executed on the proper (prior) machine state.
 
@@ -3416,20 +3415,20 @@ The three instances where the [pvm]{.smallcaps} is utilized each expect to be ab
     \tuple{
       \blob, \pvmreg, \gas, \blob[:\Cpvminitinputsize], \contextmutator{X}, X
     } &\to \tuple{\gas, \blob \cup \set{\panic, \oog}, X}\\
-    \tup{\jamNblob, \imath, \gascounter, \mathbf{a}, f, \mathbf{x}} &\mapsto \begin{cases}
-      \tup{0, \panic, \mathbf{x}} &\when Y(\jamNblob, \mathbf{a}) = \none\\
-      R(\gascounter, \Psi_H(\pvmNblob, \imath, \gascounter, \registers, {\memory}, f, \mathbf{x})) &\when Y(\jamNblob, \mathbf{a}) = \tup{\pvmNblob, \registers, {\memory}}\\
+    \tup{\jamNblob, \imath, \gascounter, \mathbf{a}, f, \context} &\mapsto \begin{cases}
+      \tup{0, \panic, \context} &\when Y(\jamNblob, \mathbf{a}) = \none\\
+      R(\gascounter, \Psi_H(\pvmNblob, \imath, \gascounter, \registers, {\memory}, f, \context)) &\when Y(\jamNblob, \mathbf{a}) = \tup{\pvmNblob, \registers, {\memory}}\\
       \multicolumn{2}{l}{
         \quad \where R \colon \tup{\gascounter, \tup{\begin{alignedat}{5}
           &\varepsilon,\, &&\imath',\, &&\gascounter',\\
-          &\registers',\, &&{\memory}',\, &&\mathbf{x}'
+          &\registers',\, &&{\memory}',\, &&\context'
         \end{alignedat}
         }} \mapsto \begin{cases}
-          \tup{u, \oog, \mathbf{x}'} &\when \varepsilon = \oog \\
-          \tup{u, \memory'_{\registers'_{7}\dots+\registers'_{8}}, \mathbf{x}'} &\when \varepsilon = \halt \wedge \Nrange{\registers'_{7}}{\registers'_{8}} \subseteq \readable{{\memory}'} \\
-          \tup{u, \sq{}, \mathbf{x}'} &\when \varepsilon = \halt \wedge \Nrange{\registers'_{7}}{\registers'_{8}} \not\subseteq \readable{{\memory}'} \\
-          \tup{u, \panic, \mathbf{x}'} &\otherwise \\
-          \multicolumn{2}{l}{\quad \where u = \gascounter - \max(\gascounter', 0)}
+          \tup{u, \oog, \context'} &\when \varepsilon = \oog \\
+          \tup{u, \memory'_{\registers'_{7}\dots+\registers'_{8}}, \context'} &\when \varepsilon = \halt \wedge \Nrange{\registers'_{7}}{\registers'_{8}} \subseteq \readable{{\memory}'} \\
+          \tup{u, \sq{}, \context'} &\when \varepsilon = \halt \wedge \Nrange{\registers'_{7}}{\registers'_{8}} \not\subseteq \readable{{\memory}'} \\
+          \tup{u, \panic, \context'} &\otherwise \\
+          \multicolumn{2}{l}{\quad \where u = \gascounter - \gascounter'}
         \end{cases}
       }\!\!\!\!\!\!\!\!
     \end{cases}
@@ -3872,7 +3871,7 @@ Note return codes for a host-call-request exit are any non-zero value less than 
 
 ## B.2 Is-Authorized Invocation {#sec:isauthorizedinvocation}
 
-The Is-Authorized invocation is the first and simplest of the three, being totally stateless. It provides only host-call functions for inspecting its environment and parameters. It accepts as arguments only the core on which it should be executed, $c$. Formally, it is defined as $\Psi_I$: $$\begin{aligned}
+The Is-Authorized invocation is the first and simplest of the three, being totally stateless. It provides only host-call functions for inspecting its environment and parameters. It accepts as arguments only the work-package $\wpX$ and the core on which it should be executed, $c$. Formally, it is defined as $\Psi_I$: $$\begin{aligned}
   \label{eq:isauthinvocation}
   \Psi_I &\colon \abracegroup{
     \tuple{\workpackage, \coreindex} &\to \tuple{\blob \cup \workerror, \gas} \\
@@ -3883,18 +3882,15 @@ The Is-Authorized invocation is the first and simplest of the three, being total
       \multicolumn{2}{l}{\where \tup{u, \mathbf{r}, \none} = \Psi_M(\wpX_\wpNauthcode, 0, \Cpackageauthgas, \encode[2]{c}, F, \none)}\\
     \end{cases}\\
   } \\
-  \label{eq:isauthorizedmutator}F \in \contextmutator{\emset} &\colon
-    \tup{n, \gascounter, \registers, \memory} \mapsto \begin{cases}
-      \Omega_G(\gascounter, \registers, \memory) &\when n = \mathtt{gas} \\
-      \Omega_\Gemini(\gascounter, \registers, \memory, \wpX_\wpNauthcode) &\when n = \mathtt{grow\_heap} \\
-      \Omega_Y(\gascounter, \registers, \memory, \wpX, \none, \none, \none, \none, \none, \none, \none) &\when n = \mathtt{fetch} \\
-      \tup{\oog, \gascounter', \registers', \memory} &\otherwhen \gascounter' < 0 \\
-      \tup{\blacktriangleright, \gascounter', \registers', \memory} &\otherwise \\
-      \multicolumn{2}{l}{\where \registers' = \registers \exc \registers'_7 = \mathtt{WHAT}} \\
-      \multicolumn{2}{l}{\also \gascounter' = \gascounter - \Cgasunknown}
+  \label{eq:isauthorizedmutator}F \in \contextmutator{\set{\none}} &\colon
+    \tup{n, \gascounter, \registers, \memory, \none} \mapsto \begin{cases}
+      \Omega_G(\gascounter, \registers, \memory, \none) &\when n = \mathtt{gas} \\
+      \Omega_\Gemini(\gascounter, \registers, \memory, \none, \wpX_\wpNauthcode) &\when n = \mathtt{grow\_heap} \\
+      \Omega_Y(\gascounter, \registers, \memory, \none, \wpX, \none, \none, \none, \none, \none, \none) &\when n = \mathtt{fetch} \\
+      \tup{\oog, 0, \registers', \memory, \none} &\otherwhen \gascounter < \Cgasunknown \\
+      \tup{\blacktriangleright, \gascounter - \Cgasunknown, \registers', \memory, \none} &\otherwise \\
+      \multicolumn{2}{l}{\where \registers' = \registers \exc \registers'_7 = \mathtt{WHAT}}
     \end{cases}\end{aligned}$$
-
-Note for the Is-Authorized host-call dispatch function $F$ in equation [\[eq:isauthorizedmutator\]](#eq:isauthorizedmutator){reference-type="ref" reference="eq:isauthorizedmutator"}, we elide the host-call context since, being essentially stateless, it is always $\none$.
 
 ## B.3 Refine Invocation {#sec:refineinvocation}
 
@@ -3905,7 +3901,7 @@ The historical-lookup host-call function, $\Omega_H$, is designed to give the sa
 The inner [pvm]{.smallcaps} invocation host-calls, meanwhile, depend on an integrated [pvm]{.smallcaps} type, which we shall denote $\innerpvm$. It holds a [pvm]{.smallcaps} program blob, instruction counter, [ram]{.smallcaps} and a flag denoting whether gas was already charged for the currently executing basic block: $$\label{eq:innerpvm}
   \innerpvm \equiv \tuple{\isa{\pgNcode}{\blob}, \isa{\pgNram}{\ram}, \isa{\pgNpc}{\pvmreg}, \isa{\pgNgaschargedflag}{\bool}}$$
 
-The Export host-call depends on two pieces of context; one sequence of segments (blobs of length $\Csegmentsize$) to which it may append, and the other an argument passed to the invocation function to dictate the number of segments prior which may assumed to have already been appended. The latter value ensures that an accurate segment index can be provided to the caller.
+The Export host-call depends on two pieces of context; one sequence of segments (blobs of length $\Csegmentsize$) to which it may append, and the other an argument passed to the invocation function to dictate the number of segments prior which may be assumed to have already been appended. The latter value ensures that an accurate segment index can be provided to the caller.
 
 Unlike the other invocation functions, the Refine invocation function implicitly draws upon some recent service account state item $\accounts$. The specific block from which this comes is not important, as long as it is no earlier than its work-package's lookup-anchor block. It explicitly accepts the work-package $p$ and the index of the work item to be refined, $i$ together with the core which is doing the refining $c$. Additionally, the authorizer trace $\mathbf{r}$ is provided together with all work items' import segments $\overline{\mathbf{i}}$ and an export segment offset $\segoff$. It results in a tuple of some error $\workerror$ or the refinement output blob (signalling success), the export sequence in the case of success and the gas used in evaluation. Formally: $$\begin{aligned}
   &\Psi_R \colon \abracegroup{
@@ -3926,20 +3922,19 @@ Unlike the other invocation functions, the Refine invocation function implicitly
   &F \in \contextmutator{\tuple{\dictionary{\N}{\innerpvm}, \sequence{\segment}}} \colon
     (n, \gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}) \mapsto \begin{cases}
       \Omega_G(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}) &\when n = \mathtt{gas} \\
-      \Omega_\Gemini(\gascounter, \registers, \memory, \jamNblob) &\when n = \mathtt{grow\_heap} \\
-      \Omega_Y(\gascounter, \registers, \memory, p, \zerohash, \mathbf{r}, i, \overline{\mathbf{i}}, \overline{\mathbf{x}}, \none, \tup{\mathbf{m}, \mathbf{e}}) &\when n = \mathtt{fetch}\\
-      \Omega_H(\gascounter, \registers, \memory, w_\wiNserviceindex, \accounts, (p_\wpNcontext)_\wcNlookupanchortime) &\when n = \mathtt{historical\_lookup}\\
-      \Omega_E(\gascounter, \registers, \memory, \mathbf{e}, \segoff) &\when n = \mathtt{export}\\
-      \Omega_M(\gascounter, \registers, \memory, \mathbf{m}) &\when n = \mathtt{machine}\\
-      \Omega_P(\gascounter, \registers, \memory, \mathbf{m}) &\when n = \mathtt{peek}\\
-      \Omega_O(\gascounter, \registers, \memory, \mathbf{m}) &\when n = \mathtt{poke}\\
-      \Omega_Z(\gascounter, \registers, \memory, \mathbf{m}) &\when n = \mathtt{pages}\\
-      \Omega_K(\gascounter, \registers, \memory, \mathbf{m}) &\when n = \mathtt{invoke}\\
-      \Omega_X(\gascounter, \registers, \memory, \mathbf{m}) &\when n = \mathtt{expunge}\\
-      \tup{\oog, \gascounter', \registers', \memory} &\otherwhen \gascounter' < 0\\
-      \tup{\blacktriangleright, \gascounter', \registers', \memory} &\otherwise\\
+      \Omega_\Gemini(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}, \jamNblob) &\when n = \mathtt{grow\_heap} \\
+      \Omega_Y(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}, p, \zerohash, \mathbf{r}, i, \overline{\mathbf{i}}, \overline{\mathbf{x}}, \none) &\when n = \mathtt{fetch}\\
+      \Omega_H(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}, w_\wiNserviceindex, \accounts, (p_\wpNcontext)_\wcNlookupanchortime) &\when n = \mathtt{historical\_lookup}\\
+      \Omega_E(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}, \segoff) &\when n = \mathtt{export}\\
+      \Omega_M(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}) &\when n = \mathtt{machine}\\
+      \Omega_P(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}) &\when n = \mathtt{peek}\\
+      \Omega_O(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}) &\when n = \mathtt{poke}\\
+      \Omega_Z(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}) &\when n = \mathtt{pages}\\
+      \Omega_K(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}) &\when n = \mathtt{invoke}\\
+      \Omega_X(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}) &\when n = \mathtt{expunge}\\
+      \tup{\oog, 0, \registers', \memory, \tup{\mathbf{m}, \mathbf{e}}} &\otherwhen \gascounter < \Cgasunknown\\
+      \tup{\blacktriangleright, \gascounter - \Cgasunknown', \registers', \memory, \tup{\mathbf{m}, \mathbf{e}}} &\otherwise\\
       \multicolumn{2}{l}{\where \registers' = \registers \exc \registers'_7 = \mathtt{WHAT}} \\
-      \multicolumn{2}{l}{\also \gascounter' = \gascounter - \Cgasunknown} \\
       \multicolumn{2}{l}{\also \overline{\mathbf{x}} = \sq{\build{
         \sq{\build{
           \mathbf{x}
@@ -4014,13 +4009,13 @@ We define $\Psi_A$, the Accumulation invocation function as: $$\begin{aligned}
     &\qquad\where \imNnextfreeid = \text{check}((\decode[4]{\blake{\encode{\imNid, \entropyaccumulator', \H_\Ntimeslot}}} \bmod (2^{32}-\Cminpublicindex-2^8)) + \Cminpublicindex) \\
   }\\
   F \in \contextmutator{\implicationspair} &\colon \tup{n, \gascounter, \registers, \memory, \imXY} \mapsto \begin{cases}
-  \Omega_G(\gascounter, \registers, \memory, \imXY) &\when n = \mathtt{gas} \\
-    \Omega_\Gemini(\gascounter, \registers, \memory, \jamNblob) &\when n = \mathtt{grow\_heap} \\
-    \Omega_Y(\gascounter, \registers, \memory, \none, \entropyaccumulator', \none, \none, \none, \none, \mathbf{i}, \imXY) &\when n = \mathtt{fetch}\\
-    G(\Omega_R(\gascounter, \registers, \memory, \imX_\imNself, \imX_\imNid, (\imX_\imNstate)_\psNaccounts), \imXY) &\when n = \mathtt{read} \\
-    G(\Omega_W(\gascounter, \registers, \memory, \imX_\imNself, \imX_\imNid), \imXY) &\when n = \mathtt{write} \\
-    G(\Omega_L(\gascounter, \registers, \memory, \imX_\imNself, \imX_\imNid, (\imX_\imNstate)_\psNaccounts), \imXY) &\when n = \mathtt{lookup} \\
-    G(\Omega_I(\gascounter, \registers, \memory, \imX_\imNid, (\imX_\imNstate)_\psNaccounts), \imXY) &\when n = \mathtt{info} \\
+    \Omega_G(\gascounter, \registers, \memory, \imXY) &\when n = \mathtt{gas} \\
+    \Omega_\Gemini(\gascounter, \registers, \memory, \imXY, \jamNblob) &\when n = \mathtt{grow\_heap} \\
+    \Omega_Y(\gascounter, \registers, \memory, \imXY, \none, \entropyaccumulator', \none, \none, \none, \none, \mathbf{i}) &\when n = \mathtt{fetch}\\
+    \Omega_R(\gascounter, \registers, \memory, \imXY) &\when n = \mathtt{read} \\
+    \Omega_W(\gascounter, \registers, \memory, \imXY) &\when n = \mathtt{write} \\
+    \Omega_L(\gascounter, \registers, \memory, \imXY) &\when n = \mathtt{lookup} \\
+    \Omega_I(\gascounter, \registers, \memory, \imXY) &\when n = \mathtt{info} \\
     \Omega_B(\gascounter, \registers, \memory, \imXY) &\when n = \mathtt{bless}\\
     \Omega_A(\gascounter, \registers, \memory, \imXY) &\when n = \mathtt{assign}\\
     \Omega_D(\gascounter, \registers, \memory, \imXY) &\when n = \mathtt{designate}\\
@@ -4034,16 +4029,10 @@ We define $\Psi_A$, the Accumulation invocation function as: $$\begin{aligned}
     \Omega_F(\gascounter, \registers, \memory, \imXY, \H_\Ntimeslot) &\when n = \mathtt{forget} \\
     \Omega_\Taurus(\gascounter, \registers, \memory, \imXY) &\when n = \mathtt{yield} \\
     \Omega_\Aries(\gascounter, \registers, \memory, \imXY) &\when n = \mathtt{provide} \\
-    \tup{\oog, \gascounter', \registers', \memory, \imXY} &\otherwhen \gascounter' < 0\\
-    \tup{\blacktriangleright, \gascounter', \registers', \memory, \imXY} &\otherwise\\
-    \multicolumn{2}{l}{\where \registers' = \registers \exc \registers'_7 = \mathtt{WHAT}} \\
-    \multicolumn{2}{l}{\also \gascounter' = \gascounter - \Cgasunknown}
+    \tup{\oog, 0, \registers', \memory, \imXY} &\otherwhen \gascounter < \Cgasunknown\\
+    \tup{\blacktriangleright, \gascounter - \Cgasunknown, \registers', \memory, \imXY} &\otherwise\\
+    \multicolumn{2}{l}{\where \registers' = \registers \exc \registers'_7 = \mathtt{WHAT}}
   \end{cases} \\
-  G&\colon\abracegroup{
-    \tuple{\tuple{\set{\blacktriangleright, \halt, \panic, \oog}, \gas, \sequence[13]{\pvmreg}, \ram, \serviceaccount}, \implicationspair} &\to \tuple{\set{\blacktriangleright, \halt, \panic, \oog}, \gas, \sequence[13]{\pvmreg}, \ram, \implicationspair} \\
-    \tup{\tup{\execst, \gascounter, \registers, \memory, \mathbf{s}}, \imXY} &\mapsto \tup{\execst, \gascounter, \registers, \memory, \tup{\imX^*, \imY}} \\
-    &\qquad \where \imX^* = \imX \exc \imX^*_\imNself = \mathbf{s}
-  }\\
   C&\colon\abracegroup{
     \tuple{\gas, \blob \cup \set{\oog, \panic}, \implicationspair} &\to \acconeout \\
     \tup{\aoNgasused, \mathbf{o}, \imXY} &\mapsto \begin{cases}
@@ -4059,7 +4048,7 @@ We define $\Psi_A$, the Accumulation invocation function as: $$\begin{aligned}
         \is{\aoNdefxfers}{\imX_\imNxfers},
         \is{\aoNyield}{\mathbf{o}},
         \aoNgasused,
-        \is{\aoNprovisions}{\imXY_\imNprovisions}
+        \is{\aoNprovisions}{\imX_\imNprovisions}
       } & \otherwhen \mathbf{o} \in \hash \\
       \tup{
         \is{\aoNpoststate}{\imX_\imNstate},
@@ -4073,7 +4062,7 @@ We define $\Psi_A$, the Accumulation invocation function as: $$\begin{aligned}
 
 The mutator $F$ governs how this context will alter for any given parameterization, and the collapse function $C$ selects one of the two dimensions of context depending on whether the virtual machine's halt was regular or exceptional.
 
-The initializer function $I$ maps some partial state along with a service account index to yield a mutator context such that no alterations to the given state are implied in either exit scenario. Note that the component $a$ utilizes the random accumulator $\entropyaccumulator'$ and the block's timeslot $\H_\Ntimeslot$ to create a deterministic sequence of identifiers which are extremely likely to be unique.
+The initializer function $I$ maps some partial state along with a service account index to yield a mutator context such that no alterations to the given state are implied in either exit scenario. Note that the component $\imNnextfreeid$ utilizes the random accumulator $\entropyaccumulator'$ and the block's timeslot $\H_\Ntimeslot$ to create a deterministic sequence of identifiers which are extremely likely to be unique.
 
 Concretely, we create the identifier from the Blake2 hash of the identifier of the creating service, the current random accumulator $\entropyaccumulator'$ and the block's timeslot. Thus, within a service's accumulation it is almost certainly unique, but it is not necessarily unique across all services, nor at all times in the past. We utilize a *check* function to find the first such index in this sequence which does not already represent a service: $$\label{eq:newserviceindex}
   \text{check}(i \in \serviceid) \equiv \begin{cases}
@@ -4083,680 +4072,665 @@ Concretely, we create the identifier from the Blake2 hash of the identifier of t
 
 n.b. In the highly unlikely event that a block executes to find that a single service index has inadvertently been attached to two different services, then the block is considered invalid. Since no service can predict the identifier sequence ahead of time, they cannot intentionally disadvantage the block author.
 
-## B.5 General Functions {#sec:generalfunctions}
+## B.5 Host Functions {#host-functions}
 
-We come now to defining the host functions which are utilized by the [pvm]{.smallcaps} invocations. Generally, these map some [pvm]{.smallcaps} state, including invocation context, possibly together with some additional parameters, to a new [pvm]{.smallcaps} state.
+We come now to defining the host functions which are utilized by the [pvm]{.smallcaps} invocations. These map some [pvm]{.smallcaps} state, including invocation context $\context$, possibly together with some additional parameters, to a new [pvm]{.smallcaps} state.
 
-The general functions are all broadly of the form $\tup{\gascounter' \in \signedgas, \registers' \in \sequence[13]{\pvmreg}, \memory' \in \ram} = \Omega_\square(\gascounter \in \gas, \registers \in \sequence[13]{\pvmreg}, \memory \in \ram)$. Functions which have a result component which is equivalent to the corresponding argument may have said components elided in the description. Functions may also depend upon particular additional parameters.
-
-Unlike the Accumulate functions in appendix [25.7](#sec:accumulatefunctions){reference-type="ref" reference="sec:accumulatefunctions"}, these do not mutate an accumulation context. Some, such as $\mathtt{write}$ mutate a service account and both accept and return some $\mathbf{s} \in \serviceaccount$. Others are more general functions, such as $\mathtt{fetch}$ and do not assume any context but have a parameter list suffixed with an ellipsis to denote that the context parameter may be taken and is provided transparently into its result. This allows it to be easily utilized in multiple [pvm]{.smallcaps} invocations.
-
-Elements of [pvm]{.smallcaps} state are each assumed to remain unchanged by the host-call unless explicitly specified. $$\begin{aligned}
-  \gascounter' &\equiv \gascounter - g\text{ unless $\gascounter'$ is explicitly defined below}\\
-  \tup{\execst', \registers', \memory', \mathbf{s}'} &\equiv \begin{cases}
-    \tup{\oog, \registers, \memory, \mathbf{s}} &\when \gascounter < g\\
-    \tup{\blacktriangleright, \registers, \memory, \mathbf{s}} \text{ except as indicated below} &\otherwise
+All host functions are of the form $\tup{\execst^* \in \set{\blacktriangleright, \panic, \oog}, \gascounter^* \in \gas, \registers^* \in \sequence[13]{\pvmreg}, \memory^* \in \ram, \context^*} = \Omega_\square(\gascounter \in \gas, \registers \in \sequence[13]{\pvmreg}, \memory \in \ram, \context, \dots)$. The gas cost of a host-call is given by $g$, defined in the tables below; should there be insufficient gas to cover this cost, $\execst^* = \oog$ is returned, all remaining gas is consumed, and registers, memory and context are left unchanged. Formally: $$\begin{aligned}
+  \gascounter^* &\equiv \max(\gascounter - g, 0)\quad\text{unless $\gascounter^*$ is explicitly defined below} \\
+  \tup{\execst^*, \registers^*, \memory^*, \context^*} &\equiv \begin{cases}
+    \tup{\oog, \registers, \memory, \context} &\when \gascounter < g \\
+    \tup{\execst', \registers', \memory', \context'} &\otherwise
   \end{cases}\end{aligned}$$
 
 Memory-sized gas for host-calls is given by a rate $L$ (gas per 1024 octets) and size $\ell$ (octets). The following defines the gas cost for such a size: $$\label{eq:fnmemgas}
-  \fnmemgas(L, \ell) \equiv \ceil{\frac{L \cdot \ell}{1024}}$$ With base cost $c$, total gas is $c + \fnmemgas(L, \ell)$. The host-call table below uses this formula for all memory-sized terms.
+  \fnmemgas(L, \ell) \equiv \ceil{\frac{L \cdot \ell}{1024}}$$ With base cost $c$, total gas is $c + \fnmemgas(L, \ell)$. The host-call tables below use this formula for all memory-sized terms.
+
+When transitioning [pvm]{.smallcaps} state for a host-call, a number of conditions typically hold true and host functions are defined essentially by their exceptions to these rules. Specifically, the machine does not halt, and [ram]{.smallcaps}, registers and context are unchanged. Formally: $$\execst' \equiv \blacktriangleright,\quad \registers' \equiv \registers,\quad \memory' \equiv \memory,\quad \context' \equiv \context\qquad\text{except as indicated below}$$
+
+### B.5.1 General Functions {#sec:generalfunctions}
+
+These make no assumptions about the context $\context$; it is always passed through untouched, i.e. $\context' = \context$.
 
 = 1.5mm = 2mm
 
-  --------------------------------------------------------------------------------------- -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-                                                                                          
-  **Identifier**                                                                          
-  **Gas usage (**$g$**)**                                                                 
-  (lr)1-1(lr)2-2                                                                          
-  `gas` = 0                                                                               
-  $g = \CgasG$                                                                            $\begin{aligned}
-                                                                                              \registers'_7 &\equiv \gascounter'
-                                                                                            \end{aligned}$
-  (lr)1-1(lr)2-2                                                                          
-  `grow_heap` = 1                                                                         
-  $g = \CgasGeminiconst + (\registers_7 - h) \cdot \CgasGeminilinear$                     $\begin{aligned}
-                                                                                              % This hostcall can be used to expand the RW data region of memory, or to query its size.
-                                                                                              %
-                                                                                              % It takes a single argument: the index of last writable page (plus one) the user would like
-                                                                                              % to be able to access within the RW data region of the address space.
-                                                                                              %
-                                                                                              % It returns the index (plus one) of the last writable page in the RW data region, regardless
-                                                                                              % of whether anything has changed.
-                                                                                              %
-                                                                                              % Extract the RO data size and the stack size from the JAM program blob.
-                                                                                              \using (\mathbf{o}, s) &\mapsto \jamNblob \text{ according to eq. \ref{eq:conditions}} \\
-                                                                                              % Page index of the start of the RW data region.
-                                                                                              \using a &= \frac{2\Cpvminitzonesize + \rnq{\len{\mathbf{o}}}}{\Cpvmpagesize} \\
-                                                                                              % Page index plus one of the last possible RW data region page.
-                                                                                              \using b &= \frac{2^{32} - 3\Cpvminitzonesize - \Cpvminitinputsize - \rnp{s}}{\Cpvmpagesize} \\
-                                                                                              % Current writable page count of the RW data region.
-                                                                                              \using c &= |\set{\build{p \in \Nclamp{a}{b}}{\memory_\ramNaccess\subb{p} = \mathrm{W}}}| \\
-                                                                                              % Current heap pointer.
-                                                                                              \using h &= a + c \\
-                                                                                              \tup{\execst', \gascounter', \registers'_7} &\equiv \begin{cases}
-                                                                                                % Do nothing if the heap is large enough already, or if the requested size was too large.
-                                                                                                \tup{\blacktriangleright, \gascounter - \CgasGeminiconst, h} &\when \registers_7 \leq h \lor \registers_7 > b \\
-                                                                                                % Only enlarge the heap if we have enough gas; otherwise abort with OOG.
-                                                                                                \tup{\oog, \gascounter, h} &\otherwhen \gascounter < g \\
-                                                                                                % Charge gas and expand the accessible RW data region.
-                                                                                                \tup{\blacktriangleright, \gascounter - g, \registers_7} &\otherwise \\
-                                                                                              \end{cases}\\
-                                                                                              (\memory'_\ramNaccess)\interval{a}{\registers_7'} &\equiv \sq{\mathrm{W}, \dots, \mathrm{W}}
-                                                                                            \end{aligned}$
-  (lr)1-1(lr)2-2                                                                          
-  `fetch` = 2                                                                             
-  $g = \CgasYc{c} + \fnmemgas(\CgasYl{c}, z)$                                             $\begin{aligned}
-                                                                                              \using c &= \begin{cases}
-                                                                                                \registers_{10} &\when \registers_{10} < 16 \\
-                                                                                                \none &\otherwise
-                                                                                              \end{cases} \\
-                                                                                              \using \mathbf{v} &= \begin{cases}
-                                                                                                \mathbf{c} &\when \registers_{10} = 0 \\
-                                                                                                \multicolumn{2}{l}{\where \mathbf{c} = \encode{
-                                                                                                  \begin{aligned}
-                                                                                                    &\encode[8]{\Citemdeposit},
-                                                                                                    \encode[8]{\Cbytedeposit},
-                                                                                                    \encode[8]{\Cbasedeposit},
-                                                                                                    \encode[2]{\Ccorecount},
-                                                                                                    \encode[4]{\Cexpungeperiod},
-                                                                                                    \encode[4]{\Cepochlen},
-                                                                                                    \encode[8]{\Creportaccgas},\\
-                                                                                                    &\encode[8]{\Cpackageauthgas},
-                                                                                                    \encode[8]{\Cpackagerefgas},
-                                                                                                    \encode[8]{\Cblockaccgas},
-                                                                                                    \encode[2]{\Crecenthistorylen},
-                                                                                                    \encode[2]{\Cmaxpackageitems},
-                                                                                                    \encode[2]{\Cmaxreportdeps},
-                                                                                                    \encode[2]{\Cmaxblocktickets},\\
-                                                                                                    &\encode[4]{\Cmaxlookupanchorage},
-                                                                                                    \encode[2]{\Cauthpoolsize},
-                                                                                                    \encode[2]{\Cslotseconds},
-                                                                                                    \encode[2]{\Cauthqueuesize},
-                                                                                                    \encode[2]{\Crotationperiod},
-                                                                                                    \encode[2]{\Cmaxpackagexts},
-                                                                                                    \encode[2]{\Cassurancetimeoutperiod},\\
-                                                                                                    &\encode[4]{\Cmaxauthcodesize},
-                                                                                                    \encode[4]{\Cmaxbundlesize},
-                                                                                                    \encode[4]{\Cmaxservicecodesize},
-                                                                                                    \encode[4]{\Cmaxpackageimports},
-                                                                                                    \encode[4]{\Cmaxreportvarsize},\\
-                                                                                                    &\encode[4]{\Cmemosize},
-                                                                                                    \encode[4]{\Cmaxpackageexports},
-                                                                                                    \encode[4]{\Cepochtailstart}
-                                                                                                  \end{aligned}
-                                                                                                }}\\
-                                                                                                n &\when n \ne \none \wedge \registers_{10} = 1 \\
-                                                                                                \mathbf{r} &\when \mathbf{r} \ne \none \wedge \registers_{10} = 2 \\
-                                                                                                \overline{\mathbf{x}}[\registers_{11}]_{\registers_{12}} &\when \overline{\mathbf{x}} \ne \none \wedge \registers_{10} = 3 \wedge \registers_{11} < \len{\overline{\mathbf{x}}} \wedge \registers_{12} < \len{\overline{\mathbf{x}}[\registers_{11}]} \\
-                                                                                                \overline{\mathbf{x}}\subb{i}_{\registers_{11}} &\when \overline{\mathbf{x}} \ne \none \wedge i \ne \none \wedge \registers_{10} = 4 \wedge \registers_{11} < \len{\overline{\mathbf{x}}\subb{i}} \\
-                                                                                                \overline{\mathbf{i}}[\registers_{11}]_{\registers_{12}} &\when \overline{\mathbf{i}} \ne \none \wedge \registers_{10} = 5 \wedge \registers_{11} < \len{\overline{\mathbf{i}}} \wedge \registers_{12} < \len{\overline{\mathbf{i}}[\registers_{11}]} \\
-                                                                                                \overline{\mathbf{i}}\subb{i}_{\registers_{11}} &\when \overline{\mathbf{i}} \ne \none \wedge i \ne \none \wedge \registers_{10} = 6 \wedge \registers_{11} < \len{\overline{\mathbf{i}}\subb{i}} \\
-                                                                                                \encode{p} &\when p \ne \none \wedge \registers_{10} = 7 \\
-                                                                                                p_\wpNauthconfig &\when p \ne \none \wedge \registers_{10} = 8 \\
-                                                                                                p_\wpNauthtoken &\when p \ne \none \wedge \registers_{10} = 9 \\
-                                                                                                \encode{p_\wpNcontext} &\when p \ne \none \wedge \registers_{10} = 10 \\
-                                                                                                \encode{\var{\sq{\build{S(w)}{w \orderedin p_\wpNworkitems}}}} &\when p \ne \none \wedge \registers_{10} = 11 \\
-                                                                                                S(p_\wpNworkitems[\registers_{11}]) &\when p \ne \none \wedge \registers_{10} = 12 \wedge \registers_{11} < \len{p_\wpNworkitems} \\
-                                                                                                \multicolumn{2}{l}{\where S(w) \equiv \encode{\encode[4]{w_\wiNserviceindex}, w_\wiNcodehash, \encode[8]{w_\wiNrefgaslimit, w_\wiNaccgaslimit}, \encode[2]{w_\wiNexportcount, \len{w_\wiNimportsegments}, \len{w_\wiNextrinsics}}, \encode[4]{\len{w_\wiNpayload}}}} \\
-                                                                                                p_\wpNworkitems[\registers_{11}]_\wiNpayload &\when p \ne \none \wedge \registers_{10} = 13 \wedge \registers_{11} < \len{p_\wpNworkitems} \\
-                                                                                                \encode{\var{\mathbf{i}}} &\when \mathbf{i} \ne \none \wedge \registers_{10} = 14 \\
-                                                                                                \encode{\mathbf{i}[\registers_{11}]} &\when \mathbf{i} \ne \none \wedge \registers_{10} = 15 \wedge \registers_{11} < \len{\mathbf{i}} \\
-                                                                                                \none &\otherwise
-                                                                                              \end{cases} \\
-                                                                                              \using \sq{o, f_0, z} &= \registers\subrange{7}{3} \\
-                                                                                              \using f &= \min(f_0, \len{\mathbf{v}}) \\
-                                                                                              \using l &= \min(z, \len{\mathbf{v}} - f) \\
-                                                                                              \tup{\execst', \registers'_7, \memory'\subrange{o}{l}} &\equiv \begin{cases}
-                                                                                                \tup{\panic, \registers_7, \memory\subrange{o}{l}} &\when \Nrange{o}{l} \not\subseteq \writable{\memory} \\
-                                                                                                \tup{\blacktriangleright, \mathtt{NONE}, \memory\subrange{o}{l}} &\otherwhen \mathbf{v} = \none \\
-                                                                                                \tup{\blacktriangleright, \len{\mathbf{v}}, \mathbf{v}\subrange{f}{l}} &\otherwise \\
-                                                                                              \end{cases}
-                                                                                            \end{aligned}$
-  (lr)1-1(lr)2-2                                                                          
-  `lookup` = 3                                                                            
-  $g = \CgasLconst + \fnmemgas(\CgasLlinear, z)$                                          $\begin{aligned}
-                                                                                              \using \mathbf{a} &= \begin{cases}
-                                                                                                \mathbf{s} &\when \registers_7 \in \set{ s, 2^{64} - 1 } \\
-                                                                                                \mathbf{d}[\registers_7] &\otherwhen \registers_7 \in \keys{\mathbf{d}} \\
-                                                                                                \none &\otherwise
-                                                                                              \end{cases} \\
-                                                                                              \using \sq{h, o} &= \registers\subrange{8}{2} \\
-                                                                                              \using z &= \registers_{11} \\
-                                                                                              \using \mathbf{v} &= \begin{cases}
-                                                                                                \error &\when \Nrange{h}{32} \not\subseteq \readable{\memory} \\
-                                                                                                \none &\otherwhen \mathbf{a} = \none \vee \memory\subrange{h}{32} \not\in \keys{\mathbf{a}_\saNpreimages} \\
-                                                                                                \mathbf{a}_\saNpreimages[\memory\subrange{h}{32}] &\otherwise \\
-                                                                                              \end{cases} \\
-                                                                                              \using f &= \min(\registers_{10}, \len{\mathbf{v}}) \\
-                                                                                              \using l &= \min(z, \len{\mathbf{v}} - f) \\
-                                                                                              \tup{\execst', \registers'_7, \memory'\subrange{o}{l}} &\equiv \begin{cases}
-                                                                                                \tup{\panic, \registers_7, \memory\subrange{o}{l}} &\when \mathbf{v} = \error \vee \Nrange{o}{l} \not\subseteq \writable{\memory}\\
-                                                                                                \tup{\blacktriangleright, \mathtt{NONE}, \memory\subrange{o}{l}} &\otherwhen \mathbf{v} = \none \\
-                                                                                                \tup{\blacktriangleright, \len{\mathbf{v}}, \mathbf{v}\subrange{f}{l}} &\otherwise \\
-                                                                                              \end{cases}
-                                                                                            \end{aligned}$
-  (lr)1-1(lr)2-2                                                                          
-  `read` = 4                                                                              
-  $g = \CgasRconst + \fnmemgas(\CgasRkeylinear, k_Z) + \fnmemgas(\CgasRvallinear, v_Z)$   $\begin{aligned}
-                                                                                              \using s^* &= \begin{cases}
-                                                                                                s &\when \registers_7 = 2^{64} - 1 \\
-                                                                                                \registers_7 &\otherwise
-                                                                                              \end{cases} \\
-                                                                                              \using \mathbf{a} &= \begin{cases}
-                                                                                                \mathbf{s} &\when s^* = s \\
-                                                                                                \mathbf{d}[s^*] &\otherwhen s^* \in \keys{\mathbf{d}} \\
-                                                                                                \none &\otherwise
-                                                                                              \end{cases} \\
-                                                                                              \using \sq{k_O, k_Z, o} &= \registers\subrange{8}{3} \\
-                                                                                              \using v_Z &= \registers_{12} \\
-                                                                                              \using \mathbf{v} &= \begin{cases}
-                                                                                                \error &\when \Nrange{k_O}{k_Z} \not\subseteq \readable{\memory} \\
-                                                                                                \mathbf{a}_\saNstorage\subb{\mathbf{k}} &\otherwhen \mathbf{a} \ne \none \wedge \mathbf{k} \in \keys{\mathbf{a}_\saNstorage}\,,\ \where \mathbf{k} = \memory\subrange{k_O}{k_Z} \\
-                                                                                                \none &\otherwise
-                                                                                              \end{cases} \\
-                                                                                              \using f &= \min(\registers_{11}, \len{\mathbf{v}}) \\
-                                                                                              \using l &= \min(v_Z, \len{\mathbf{v}} - f) \\
-                                                                                              \tup{\execst', \registers'_7, \memory'\subrange{o}{l}} &\equiv \begin{cases}
-                                                                                                \tup{\panic, \registers_7, \memory\subrange{o}{l}} &\when \mathbf{v} = \error \vee \Nrange{o}{l} \not\subseteq \writable{\memory}\\
-                                                                                                \tup{\blacktriangleright, \mathtt{NONE}, \memory\subrange{o}{l}} &\otherwhen \mathbf{v} = \none \\
-                                                                                                \tup{\blacktriangleright, \len{\mathbf{v}}, \mathbf{v}\subrange{f}{l}} &\otherwise \\
-                                                                                              \end{cases}
-                                                                                            \end{aligned}$
-  (lr)1-1(lr)2-2                                                                          
-  `write` = 5                                                                             
-  $g = \CgasWconst + \fnmemgas(\CgasWkeylinear, k_Z) + \fnmemgas(\CgasWvallinear, v_Z)$   $\begin{aligned}
-                                                                                              \using \sq{k_O, k_Z, v_O, v_Z} &= \registers\subrange{7}{4} \\
-                                                                                              \using \mathbf{k} &= \begin{cases}
-                                                                                                \memory\subrange{k_O}{k_Z} &\when \Nrange{k_O}{k_Z} \subseteq \readable{\memory} \\
-                                                                                                \error &\otherwise
-                                                                                              \end{cases} \\
-                                                                                              \using \mathbf{a} &= \begin{cases}
-                                                                                                \mathbf{s}\,,\ \exc \keys{\mathbf{a}_\saNstorage} = \keys{\mathbf{a}_\saNstorage} \setminus \set{k} & \when v_Z = 0 \\
-                                                                                                \mathbf{s}\,,\ \exc \mathbf{a}_\saNstorage\subb{\mathbf{k}} = \memory\subrange{v_O}{v_Z} &\otherwhen \Nrange{v_O}{v_Z} \subseteq \readable{\memory} \\
-                                                                                                \error &\otherwise
-                                                                                              \end{cases} \\
-                                                                                              \using l &= \begin{cases}
-                                                                                                \len{\mathbf{s}_\saNstorage\subb{k}} &\when \mathbf{k} \in \keys{\mathbf{s}_\saNstorage} \\
-                                                                                                \mathtt{NONE} &\otherwise
-                                                                                              \end{cases} \\
-                                                                                              \tup{\execst', \registers'_7, \mathbf{s}'} &\equiv \begin{cases}
-                                                                                                \tup{\panic, \registers_7, \mathbf{s}} &\when \mathbf{k} = \error \vee \mathbf{a} = \error\\
-                                                                                                \tup{\blacktriangleright, \mathtt{FULL}, \mathbf{s}} &\otherwhen \mathbf{a}_\saNminbalance > \mathbf{a}_\saNbalance \\
-                                                                                                \tup{\blacktriangleright, l, \mathbf{a}} &\otherwise\\
-                                                                                              \end{cases}
-                                                                                            \end{aligned}$
-  (lr)1-1(lr)2-2                                                                          
-  `info` = 6                                                                              
-  $g = \CgasI$                                                                            $\begin{aligned}
-                                                                                              \using \mathbf{a} &= \begin{cases}
-                                                                                                \mathbf{d}\subb{s} &\when \registers_7 = 2^{64} - 1 \\
-                                                                                                \mathbf{d}\subb{\registers_7} &\otherwise
-                                                                                              \end{cases} \\
-                                                                                              \using o &= \registers_8 \\
-                                                                                              \using \mathbf{v} &= \begin{cases}
-                                                                                                \encode{
-                                                                                                  \mathbf{a}_\saNcodehash,
-                                                                                                  \encode[8]{\mathbf{a}_\saNbalance, \mathbf{a}_\saNminbalance, \mathbf{a}_\saNminaccgas, \mathbf{a}_\saNminmemogas, \mathbf{a}_\saNoctets},
-                                                                                                  \encode[4]{\mathbf{a}_\saNitems},
-                                                                                                  \encode[8]{\mathbf{a}_\saNgratis},
-                                                                                                  \encode[4]{\mathbf{a}_\saNcreated, \mathbf{a}_\saNlastacc, \mathbf{a}_\saNparent}
-                                                                                                } &\when \mathbf{a} \ne \none \\
-                                                                                                \none &\otherwise
-                                                                                              \end{cases} \\
-                                                                                              \using f &= \min(\registers_{9}, \len{\mathbf{v}}) \\
-                                                                                              \using l &= \min(\registers_{10}, \len{\mathbf{v}} - f) \\
-                                                                                              \tup{\execst', \registers'_7, \memory'\subrange{o}{l}} &\equiv \begin{cases}
-                                                                                                \tup{\panic, \registers_7, \memory\subrange{o}{l}} &\when \mathbf{v} = \error \vee \Nrange{o}{l} \not\subseteq \writable{\memory}\\
-                                                                                                \tup{\blacktriangleright, \mathtt{NONE}, \memory\subrange{o}{l}} &\otherwhen \mathbf{v} = \none \\
-                                                                                                \tup{\blacktriangleright, \len{\mathbf{v}}, \mathbf{v}\subrange{f}{l}} &\otherwise \\
-                                                                                              \end{cases}
-                                                                                            \end{aligned}$
-  --------------------------------------------------------------------------------------- -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ------------------------- -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                            
+  **Identifier**            
+  **Gas usage (**$g$**)**   
+  (lr)1-1(lr)2-2            
+  `gas` = 0                 $\begin{aligned}
+                                \registers'_7 &\equiv \gascounter^* \\
+                                g &\equiv \CgasG
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `grow_heap` = 1           $\begin{aligned}
+                                % This hostcall can be used to expand the RW data region of memory, or to query its size.
+                                %
+                                % It takes a single argument: the index of last writable page (plus one) the user would like
+                                % to be able to access within the RW data region of the address space.
+                                %
+                                % It returns the index (plus one) of the last writable page in the RW data region, regardless
+                                % of whether anything has changed.
+                                %
+                                % Extract the RO data size and the stack size from the JAM program blob.
+                                \using (\mathbf{o}, s) &\mapsto \jamNblob \text{ according to eq. \ref{eq:conditions}} \\
+                                % Page index of the start of the RW data region.
+                                \using a &= \frac{2\Cpvminitzonesize + \rnq{\len{\mathbf{o}}}}{\Cpvmpagesize} \\
+                                % Page index plus one of the last possible RW data region page.
+                                \using b &= \frac{2^{32} - 3\Cpvminitzonesize - \Cpvminitinputsize - \rnq{s}}{\Cpvmpagesize} \\
+                                % Current writable page count of the RW data region.
+                                \using c &= |\set{\build{p \in \Nclamp{a}{b}}{\memory_\ramNaccess\subb{p} = \mathrm{W}}}| \\
+                                % Current heap pointer.
+                                \using h &= a + c \\
+                                \registers'_7 &\equiv \begin{cases}
+                                  % Do nothing if the heap is large enough already, or if the requested size was too large.
+                                  h &\when \registers_7 \leq h \lor \registers_7 > b \\
+                                  % Expand the accessible RW data region.
+                                  \registers_7 &\otherwise
+                                \end{cases}\\
+                                (\memory'_\ramNaccess)\interval{a}{\registers_7'} &\equiv \sq{\mathrm{W}, \dots, \mathrm{W}} \\
+                                g &\equiv \CgasGeminiconst + (\registers_7' - h) \cdot \CgasGeminilinear
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `fetch` = 2               $\begin{aligned}
+                                \using \mathbf{v} &= \begin{cases}
+                                  \mathbf{c} &\when \registers_{10} = 0 \\
+                                  \multicolumn{2}{l}{\where \mathbf{c} = \encode{
+                                    \begin{aligned}
+                                      &\encode[8]{\Citemdeposit},
+                                      \encode[8]{\Cbytedeposit},
+                                      \encode[8]{\Cbasedeposit},
+                                      \encode[2]{\Ccorecount},
+                                      \encode[4]{\Cexpungeperiod},
+                                      \encode[4]{\Cepochlen},
+                                      \encode[8]{\Creportaccgas},\\
+                                      &\encode[8]{\Cpackageauthgas},
+                                      \encode[8]{\Cpackagerefgas},
+                                      \encode[8]{\Cblockaccgas},
+                                      \encode[2]{\Crecenthistorylen},
+                                      \encode[2]{\Cmaxpackageitems},
+                                      \encode[2]{\Cmaxreportdeps},
+                                      \encode[2]{\Cmaxblocktickets},\\
+                                      &\encode[4]{\Cmaxlookupanchorage},
+                                      \encode[2]{\Cauthpoolsize},
+                                      \encode[2]{\Cslotseconds},
+                                      \encode[2]{\Cauthqueuesize},
+                                      \encode[2]{\Crotationperiod},
+                                      \encode[2]{\Cmaxpackagexts},
+                                      \encode[2]{\Cassurancetimeoutperiod},\\
+                                      &\encode[4]{\Cmaxauthcodesize},
+                                      \encode[4]{\Cmaxbundlesize},
+                                      \encode[4]{\Cmaxservicecodesize},
+                                      \encode[4]{\Cmaxpackageimports},
+                                      \encode[4]{\Cmaxreportvarsize},\\
+                                      &\encode[4]{\Cmemosize},
+                                      \encode[4]{\Cmaxpackageexports},
+                                      \encode[4]{\Cepochtailstart}
+                                    \end{aligned}
+                                  }}\\
+                                  n &\when n \ne \none \wedge \registers_{10} = 1 \\
+                                  \mathbf{r} &\when \mathbf{r} \ne \none \wedge \registers_{10} = 2 \\
+                                  \overline{\mathbf{x}}[\registers_{11}]_{\registers_{12}} &\when \overline{\mathbf{x}} \ne \none \wedge \registers_{10} = 3 \wedge \registers_{11} < \len{\overline{\mathbf{x}}} \wedge \registers_{12} < \len{\overline{\mathbf{x}}[\registers_{11}]} \\
+                                  \overline{\mathbf{x}}\subb{i}_{\registers_{11}} &\when \overline{\mathbf{x}} \ne \none \wedge i \ne \none \wedge \registers_{10} = 4 \wedge \registers_{11} < \len{\overline{\mathbf{x}}\subb{i}} \\
+                                  \overline{\mathbf{i}}[\registers_{11}]_{\registers_{12}} &\when \overline{\mathbf{i}} \ne \none \wedge \registers_{10} = 5 \wedge \registers_{11} < \len{\overline{\mathbf{i}}} \wedge \registers_{12} < \len{\overline{\mathbf{i}}[\registers_{11}]} \\
+                                  \overline{\mathbf{i}}\subb{i}_{\registers_{11}} &\when \overline{\mathbf{i}} \ne \none \wedge i \ne \none \wedge \registers_{10} = 6 \wedge \registers_{11} < \len{\overline{\mathbf{i}}\subb{i}} \\
+                                  \encode{p} &\when p \ne \none \wedge \registers_{10} = 7 \\
+                                  p_\wpNauthconfig &\when p \ne \none \wedge \registers_{10} = 8 \\
+                                  p_\wpNauthtoken &\when p \ne \none \wedge \registers_{10} = 9 \\
+                                  \encode{p_\wpNcontext} &\when p \ne \none \wedge \registers_{10} = 10 \\
+                                  \encode{\var{\sq{\build{S(w)}{w \orderedin p_\wpNworkitems}}}} &\when p \ne \none \wedge \registers_{10} = 11 \\
+                                  S(p_\wpNworkitems[\registers_{11}]) &\when p \ne \none \wedge \registers_{10} = 12 \wedge \registers_{11} < \len{p_\wpNworkitems} \\
+                                  \multicolumn{2}{l}{\where S(w) \equiv \encode{\encode[4]{w_\wiNserviceindex}, w_\wiNcodehash, \encode[8]{w_\wiNrefgaslimit, w_\wiNaccgaslimit}, \encode[2]{w_\wiNexportcount, \len{w_\wiNimportsegments}, \len{w_\wiNextrinsics}}, \encode[4]{\len{w_\wiNpayload}}}} \\
+                                  p_\wpNworkitems[\registers_{11}]_\wiNpayload &\when p \ne \none \wedge \registers_{10} = 13 \wedge \registers_{11} < \len{p_\wpNworkitems} \\
+                                  \encode{\var{\mathbf{i}}} &\when \mathbf{i} \ne \none \wedge \registers_{10} = 14 \\
+                                  \encode{\mathbf{i}[\registers_{11}]} &\when \mathbf{i} \ne \none \wedge \registers_{10} = 15 \wedge \registers_{11} < \len{\mathbf{i}} \\
+                                  \none &\otherwise
+                                \end{cases} \\
+                                \using \sq{o, f_0, z} &= \registers\subrange{7}{3} \\
+                                \using f &= \min(f_0, \len{\mathbf{v}}) \\
+                                \using l &= \min(z, \len{\mathbf{v}} - f) \\
+                                \tup{\execst', \registers'_7, \memory'\subrange{o}{l}} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, \memory\subrange{o}{l}} &\when \Nrange{o}{l} \not\subseteq \writable{\memory} \\
+                                  \tup{\blacktriangleright, \mathtt{NONE}, \memory\subrange{o}{l}} &\otherwhen \mathbf{v} = \none \\
+                                  \tup{\blacktriangleright, \len{\mathbf{v}}, \mathbf{v}\subrange{f}{l}} &\otherwise \\
+                                \end{cases} \\
+                                g &\equiv \begin{cases}
+                                  \CgasYc{\registers_{10}} + \fnmemgas(\CgasYl{\registers_{10}}, z) &\when \registers_{10} < 16 \\
+                                  \CgasYunknown &\otherwise
+                                \end{cases}
+                              \end{aligned}$
+  ------------------------- -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-## B.6 Refine Functions {#sec:refinefunctions}
+### B.5.2 Refine Functions {#sec:refinefunctions}
 
-These assume some refine context pair $\tup{\mathbf{m}, \mathbf{e}} \in \tuple{\dictionary{\N}{\innerpvm}, \sequence{\segment}}$, which are both initially empty. Other than the gas-counter which is explicitly defined, elements of [pvm]{.smallcaps} state are each assumed to remain unchanged by the host-call unless explicitly specified. $$\begin{aligned}
-  \gascounter' &\equiv \gascounter - g\\
-  \tup{\execst', \registers', \memory'} &\equiv \begin{cases}
-    \tup{\oog, \registers, \memory} &\when \gascounter < g\\
-    \tup{\blacktriangleright, \registers, \memory} \text{ except as indicated below} &\otherwise
-  \end{cases}\end{aligned}$$
+These assume some refine context pair $\tup{\mathbf{m}, \mathbf{e}} \in \tuple{\dictionary{\N}{\innerpvm}, \sequence{\segment}}$, which are both initially empty. $$\context \equiv \tup{\mathbf{m}, \mathbf{e}}\ ,\qquad \context' \equiv \tup{\mathbf{m}', \mathbf{e}'}$$
 
-  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-                                                                                                                                                                                                                                                                              
-  **Identifier**                                                                                                                                                                                                                                                              
-  **Gas usage (**$g$**)**                                                                                                                                                                                                                                                     
-  (lr)1-1(lr)2-2                                                                                                                                                                                                                                                              
-  `historical_lookup` = 7                                                                                                                                                                                                                                                     
-  $g = \CgasHconst + \fnmemgas(\CgasHlinear, z)$                                                                                                                                                                                                                              $\begin{aligned}
-                                                                                                                                                                                                                                                                                  \using \mathbf{a} &= \begin{cases}
-                                                                                                                                                                                                                                                                                    \mathbf{d}\subb{s} &\when \registers_7 = 2^{64} - 1 \wedge s \in \keys{\mathbf{d}} \\
-                                                                                                                                                                                                                                                                                    \mathbf{d}[\registers_7] &\when \registers_7 \in \keys{\mathbf{d}} \\
-                                                                                                                                                                                                                                                                                    \none &\otherwise
-                                                                                                                                                                                                                                                                                  \end{cases} \\
-                                                                                                                                                                                                                                                                                  \using \sq{h, o} &= \registers\subrange{8}{2} \\
-                                                                                                                                                                                                                                                                                  \using z &= \registers_{11} \\
-                                                                                                                                                                                                                                                                                  \using \mathbf{v} &= \begin{cases}
-                                                                                                                                                                                                                                                                                    \error &\when \Nrange{h}{32} \not\subseteq \readable{\memory} \\
-                                                                                                                                                                                                                                                                                    \none &\otherwhen \mathbf{a} = \none \\
-                                                                                                                                                                                                                                                                                    \histlookup(\mathbf{a}, t, \memory\subrange{h}{32}) &\otherwise \\
-                                                                                                                                                                                                                                                                                  \end{cases} \\
-                                                                                                                                                                                                                                                                                  \using f &= \min(\registers_{10}, \len{\mathbf{v}}) \\
-                                                                                                                                                                                                                                                                                  \using l &= \min(z, \len{\mathbf{v}} - f) \\
-                                                                                                                                                                                                                                                                                  \tup{\execst', \registers'_7, \memory'\subrange{o}{l}} &\equiv \begin{cases}
-                                                                                                                                                                                                                                                                                    \tup{\panic, \registers_7, \memory\subrange{o}{l}} &\when \mathbf{v} = \error \vee \Nrange{o}{l} \not\subseteq \writable{\memory}\\
-                                                                                                                                                                                                                                                                                    \tup{\blacktriangleright, \mathtt{NONE}, \memory\subrange{o}{l}} &\otherwhen \mathbf{v} = \none \\
-                                                                                                                                                                                                                                                                                    \tup{\blacktriangleright, \len{\mathbf{v}}, \mathbf{v}\subrange{f}{l}} &\otherwise \\
-                                                                                                                                                                                                                                                                                  \end{cases}
-                                                                                                                                                                                                                                                                                \end{aligned}$
-  (lr)1-1(lr)2-2                                                                                                                                                                                                                                                              
-  `export` = 8                                                                                                                                                                                                                                                                
-  $g = \CgasE$                                                                                                                                                                                                                                                                $\begin{aligned}
-                                                                                                                                                                                                                                                                                  \using p &= \registers_7 \\
-                                                                                                                                                                                                                                                                                  \using z &= \min(\registers_8, \Csegmentsize) \\
-                                                                                                                                                                                                                                                                                  \using \mathbf{x} &= \begin{cases}
-                                                                                                                                                                                                                                                                                    \zeropad{\Csegmentsize}{{\memory}\subrange{p}{z}} &\when \Nrange{p}{z} \subseteq \readable{\memory}\\
-                                                                                                                                                                                                                                                                                    \error &\otherwise
-                                                                                                                                                                                                                                                                                  \end{cases}\\
-                                                                                                                                                                                                                                                                                  \tup{\execst', \registers'_7, \mathbf{e}'} &\equiv \begin{cases}
-                                                                                                                                                                                                                                                                                    \tup{\panic, \registers_7, \mathbf{e}} &\when \mathbf{x} = \error \\
-                                                                                                                                                                                                                                                                                    \tup{\blacktriangleright, \mathtt{FULL}, \mathbf{e}} &\otherwhen \segoff+\len{\mathbf{e}} \ge \Cmaxpackageexports \\
-                                                                                                                                                                                                                                                                                    \tup{\blacktriangleright, \segoff + \len{\mathbf{e}}, \mathbf{e} \append \mathbf{x}} &\otherwise
-                                                                                                                                                                                                                                                                                  \end{cases}
-                                                                                                                                                                                                                                                                                \end{aligned}$
-  (lr)1-1(lr)2-2                                                                                                                                                                                                                                                              
-  `machine` = 9                                                                                                                                                                                                                                                               
-  $g = \CgasMconst + \fnmemgas(\CgasMlinear, p_Z)$                                                                                                                                                                                                                            $\begin{aligned}
-                                                                                                                                                                                                                                                                                  \using \sq{p_O, p_Z, i} &= \registers\subrange{7}{3} \\
-                                                                                                                                                                                                                                                                                  \using \mathbf{p} &= \begin{cases}
-                                                                                                                                                                                                                                                                                    \memory\subrange{p_O}{p_Z} &\when \Nrange{p_O}{p_Z} \subseteq \readable{\memory} \\
-                                                                                                                                                                                                                                                                                    \error &\otherwise
-                                                                                                                                                                                                                                                                                  \end{cases} \\
-                                                                                                                                                                                                                                                                                  \using n &= \min(n \in \N : n \not\in \keys{\mathbf{m}}) \\
-                                                                                                                                                                                                                                                                                  \using \mathbf{u} &= \tup{\is{\ramNvalue}{[0, 0, \dots]},\is{\ramNaccess}{[\none, \none, \dots]}} \\
-                                                                                                                                                                                                                                                                                  \tup{\execst', \registers'_7, \mathbf{m}} &\equiv \begin{cases}
-                                                                                                                                                                                                                                                                                    \tup{\blacktriangleright, \mathtt{FULL}, \mathbf{m}} &\when \len{\mathbf{m}} \ge 63 \\
-                                                                                                                                                                                                                                                                                    \tup{\panic, \registers_7, \mathbf{m}} &\otherwhen \mathbf{p} = \error \\
-                                                                                                                                                                                                                                                                                    \tup{\blacktriangleright, \mathtt{HUH}, \mathbf{m}} &\otherwhen \text{deblob}(\mathbf{p}, i) = \error \\
-                                                                                                                                                                                                                                                                                    \tup{\blacktriangleright, n, \mathbf{m} \cup \set{\kv{n}{\tup{\mathbf{p}, \mathbf{u}, i, \bot}}} } &\otherwise \\
-                                                                                                                                                                                                                                                                                  \end{cases} \\
-                                                                                                                                                                                                                                                                                \end{aligned}$
-  (lr)1-1(lr)2-2                                                                                                                                                                                                                                                              
-  `peek` = 10                                                                                                                                                                                                                                                                 
-  $g = \CgasPconst + \fnmemgas(\CgasPlinear, z)$                                                                                                                                                                                                                              $\begin{aligned}
-                                                                                                                                                                                                                                                                                  \using \sq{n, o, s, z} &= \registers\subrange{7}{4} \\
-                                                                                                                                                                                                                                                                                  \tup{\execst', \registers'_7, {\memory}'} &\equiv \begin{cases}
-                                                                                                                                                                                                                                                                                    \tup{\panic, \registers_7, {\memory}} &\when \Nrange{o}{z} \not\subseteq \writable{\memory} \\
-                                                                                                                                                                                                                                                                                    \tup{\blacktriangleright, \mathtt{WHO}, {\memory}} &\otherwhen n \not\in \keys{\mathbf{m}} \\
-                                                                                                                                                                                                                                                                                    \tup{\blacktriangleright, \mathtt{OOB}, {\memory}} &\otherwhen \Nrange{s}{z} \not\subseteq \readable{\mathbf{m}\subb{n}_\pgNram} \\
-                                                                                                                                                                                                                                                                                    \tup{\blacktriangleright, \mathtt{OK}, {\memory}'} &\otherwise \\
-                                                                                                                                                                                                                                                                                    \multicolumn{2}{l}{\where {\memory}' = {\memory}\exc {\memory}\subrange{o}{z} = (\mathbf{m}\subb{n}_\pgNram)\subrange{s}{z}}
-                                                                                                                                                                                                                                                                                  \end{cases} \\
-                                                                                                                                                                                                                                                                                \end{aligned}$
-  (lr)1-1(lr)2-2                                                                                                                                                                                                                                                              
-  `poke` = 11                                                                                                                                                                                                                                                                 
-  $g = \CgasOconst + \fnmemgas(\CgasOlinear, z)$                                                                                                                                                                                                                              $\begin{aligned}
-                                                                                                                                                                                                                                                                                  \using \sq{n, s, o, z} &= \registers\subrange{7}{4} \\
-                                                                                                                                                                                                                                                                                  \tup{\execst', \registers'_7, \mathbf{m}'} &\equiv \begin{cases}
-                                                                                                                                                                                                                                                                                    \tup{\panic, \registers_7, \mathbf{m}} &\when \Nrange{s}{z} \not\subseteq \readable{\memory} \\
-                                                                                                                                                                                                                                                                                    \tup{\blacktriangleright, \mathtt{WHO}, \mathbf{m}} &\otherwhen n \not\in \keys{\mathbf{m}} \\
-                                                                                                                                                                                                                                                                                    \tup{\blacktriangleright, \mathtt{OOB}, \mathbf{m}} &\otherwhen \Nrange{o}{z} \not\subseteq \writable{\mathbf{m}\subb{n}_\pgNram} \\
-                                                                                                                                                                                                                                                                                    \tup{\blacktriangleright, \mathtt{OK}, \mathbf{m}'}  &\otherwise \\
-                                                                                                                                                                                                                                                                                    \multicolumn{2}{l}{\where \mathbf{m}' = \mathbf{m} \exc (\mathbf{m}'\subb{n}_\pgNram)\subrange{o}{z} = {\memory}\subrange{s}{z}}
-                                                                                                                                                                                                                                                                                  \end{cases} \\
-                                                                                                                                                                                                                                                                                \end{aligned}$
-  (lr)1-1(lr)2-2                                                                                                                                                                                                                                                              
-  `pages` = 12                                                                                                                                                                                                                                                                
-  $g =  \begin{cases} \CgasZfreeconst + c \cdot \CgasZfreelinear &\when r = 0 \\ \CgasZallocconst + c \cdot \CgasZalloclinear &\when r \in \set{1, 2} \\ \CgasZsetmodeconst + c \cdot \CgasZsetmodelinear &\when r \in \set{3, 4} \\ \CgasZinvalid &\otherwise \end{cases}$   $\begin{aligned}
-                                                                                                                                                                                                                                                                                  \using \sq{n, p, c, r} &= \registers\subrange{7}{4} \\
-                                                                                                                                                                                                                                                                                  \using \mathbf{u} &= \begin{cases}
-                                                                                                                                                                                                                                                                                    \mathbf{m}\subb{n}_\pgNram &\when n \in \keys{\mathbf{m}} \\
-                                                                                                                                                                                                                                                                                    \error &\otherwise\\
-                                                                                                                                                                                                                                                                                  \end{cases} \\
-                                                                                                                                                                                                                                                                                  \using \mathbf{u}' &= \mathbf{u} \exc \begin{cases}
-                                                                                                                                                                                                                                                                                    (\mathbf{u}'_\ramNvalue)_{p\Cpvmpagesize\dots+c\Cpvmpagesize} = \begin{cases}
-                                                                                                                                                                                                                                                                                     \sq{0, 0, \dots} &\when r < 3 \\
-                                                                                                                                                                                                                                                                                      (\mathbf{u}_\ramNvalue)_{p\Cpvmpagesize\dots+c\Cpvmpagesize} &\otherwise
-                                                                                                                                                                                                                                                                                    \end{cases} \\
-                                                                                                                                                                                                                                                                                    (\mathbf{u}'_\ramNaccess)\subrange{p}{c} = \begin{cases}
-                                                                                                                                                                                                                                                                                     \sq{\none, \none, \dots} &\when r = 0 \\
-                                                                                                                                                                                                                                                                                     \sq{\mathrm{R}, \mathrm{R}, \dots} &\when r = 1 \vee r = 3 \\
-                                                                                                                                                                                                                                                                                     \sq{\mathrm{W}, \mathrm{W}, \dots} &\when r = 2 \vee r = 4 \\
-                                                                                                                                                                                                                                                                                    \end{cases}
-                                                                                                                                                                                                                                                                                  \end{cases}\\
-                                                                                                                                                                                                                                                                                  \tup{\registers'_7, \mathbf{m}'} &\equiv \begin{cases}
-                                                                                                                                                                                                                                                                                    \tup{\mathtt{WHO}, \mathbf{m}} &\when \mathbf{u} = \error \\
-                                                                                                                                                                                                                                                                                    \tup{\mathtt{HUH}, \mathbf{m}} &\otherwhen r > 4 \vee p < 16 \vee p+c \ge \nicefrac{2^{32}}{\Cpvmpagesize} \\
-                                                                                                                                                                                                                                                                                    \tup{\mathtt{HUH}, \mathbf{m}} &\otherwhen r > 2 \wedge (\mathbf{u}_\ramNaccess)\subrange{p}{c} \ni \none \\
-                                                                                                                                                                                                                                                                                    \tup{\mathtt{OK}, \mathbf{m}'} &\otherwise\,,\ \where \mathbf{m}' = \mathbf{m} \exc \mathbf{m}'\subb{n}_\pgNram = \mathbf{u}' \\
-                                                                                                                                                                                                                                                                                  \end{cases} \\
-                                                                                                                                                                                                                                                                                \end{aligned}$
-  (lr)1-1(lr)2-2                                                                                                                                                                                                                                                              
-  `invoke` = 13                                                                                                                                                                                                                                                               
-  $g = \CgasK + g_R$                                                                                                                                                                                                                                                          $\begin{aligned}
-                                                                                                                                                                                                                                                                                  \using \sq{n, o} &= \registers_{7, 8} \\
-                                                                                                                                                                                                                                                                                  \using \tup{g_R, \mathbf{w}} &= \begin{cases}
-                                                                                                                                                                                                                                                                                    \tup{g_R, \mathbf{w}}: \encode[8]{g_R} \concat \encode[8]{\mathbf{w}} = {\memory}\subrange{o}{112} &\when \Nrange{o}{112} \subseteq \writable{{\memory}} \\
-                                                                                                                                                                                                                                                                                    %\tup{\decode[8]{\memr\subrange{o}{8}}, \sq{\build{\decode[4]{\memr\subrange{o+8+8x}{8}}}{x \orderedin \Nmax{13}}}} &\when \Nrange{o}{60} \subset \writable_\mem} \\
-                                                                                                                                                                                                                                                                                    \tup{0, \error} &\otherwise
-                                                                                                                                                                                                                                                                                  \end{cases} \\
-                                                                                                                                                                                                                                                                                  \using \tup{c, i', g_R', \pgNgaschargedflag', \mathbf{w}', \mathbf{u}'} &= \Psi(\mathbf{m}\subb{n}_\pgNcode, \mathbf{m}\subb{n}_\pgNpc, g_R, \mathbf{m}\subb{n}_{\pgNgaschargedflag}, \mathbf{w}, \mathbf{m}\subb{n}_\pgNram)\\
-                                                                                                                                                                                                                                                                                  \using {\memory}^* &= {\memory}\exc {\memory}^*\subrange{o}{112} = \encode[8]{g_R'} \concat \encode[8]{\mathbf{w}'}\\
-                                                                                                                                                                                                                                                                                  \using \mathbf{m}^* &= \mathbf{m} \exc \begin{cases}
-                                                                                                                                                                                                                                                                                    \mathbf{m}^*\subb{n}_\pgNram = \mathbf{u}'\\
-                                                                                                                                                                                                                                                                                    \mathbf{m}^*\subb{n}_\pgNpc = \begin{cases}
-                                                                                                                                                                                                                                                                                      i' + \text{skip}(i') + 1 &\when c \in \set{ \host } \times \pvmreg\\
-                                                                                                                                                                                                                                                                                      i' &\otherwise
-                                                                                                                                                                                                                                                                                    \end{cases}\\
-                                                                                                                                                                                                                                                                                    \mathbf{m}^*\subb{n}_{\pgNgaschargedflag} = \pgNgaschargedflag'\\
-                                                                                                                                                                                                                                                                                  \end{cases}\\
-                                                                                                                                                                                                                                                                                  \gascounter' &\equiv \begin{cases}
-                                                                                                                                                                                                                                                                                    \gascounter - g &\when \mathbf{w} = \error \vee n \not\in \keys{\mathbf{m}} \vee \gascounter < g \\
-                                                                                                                                                                                                                                                                                    \gascounter - g + g_R' &\otherwise
-                                                                                                                                                                                                                                                                                  \end{cases}\\
-                                                                                                                                                                                                                                                                                  \tup{\execst', \registers'_7, \registers'_8, {\memory}', \mathbf{m}'} &\equiv \begin{cases}
-                                                                                                                                                                                                                                                                                    \tup{\panic, \registers_7, \registers_8, {\memory}, \mathbf{m}} &\when \mathbf{w} = \error \\
-                                                                                                                                                                                                                                                                                    \tup{\blacktriangleright, \mathtt{WHO}, \registers_8, {\memory}, \mathbf{m}} &\otherwhen n \not\in \mathbf{m} \\
-                                                                                                                                                                                                                                                                                    \tup{\blacktriangleright, \mathtt{HOST}, h, {\memory}^*, \mathbf{m}^*} &\otherwhen c = \host \times h \\
-                                                                                                                                                                                                                                                                                    \tup{\blacktriangleright, \mathtt{FAULT}, x, {\memory}^*, \mathbf{m}^*} &\otherwhen c = \fault \times x \\
-                                                                                                                                                                                                                                                                                    \tup{\blacktriangleright, \mathtt{OOG}, \registers_8, {\memory}^*, \mathbf{m}^*} &\otherwhen c = \oog \\
-                                                                                                                                                                                                                                                                                    \tup{\blacktriangleright, \mathtt{PANIC}, \registers_8, {\memory}^*, \mathbf{m}^*} &\otherwhen c = \panic \\
-                                                                                                                                                                                                                                                                                    \tup{\blacktriangleright, \mathtt{HALT}, \registers_8, {\memory}^*, \mathbf{m}^*} &\otherwhen c = \halt \\
-                                                                                                                                                                                                                                                                                  \end{cases} \\
-                                                                                                                                                                                                                                                                                \end{aligned}$
-  (lr)1-1(lr)2-2                                                                                                                                                                                                                                                              
-  `expunge` = 14                                                                                                                                                                                                                                                              
-  $g = \CgasX$                                                                                                                                                                                                                                                                $\begin{aligned}
-                                                                                                                                                                                                                                                                                  \using n &= \registers_7 \\
-                                                                                                                                                                                                                                                                                  \tup{\registers'_7, \mathbf{m}'} &\equiv \begin{cases}
-                                                                                                                                                                                                                                                                                    \tup{\mathtt{WHO}, \mathbf{m}} &\when n \not\in \keys{\mathbf{m}} \\
-                                                                                                                                                                                                                                                                                    \tup{\mathbf{m}\subb{n}_\pgNpc, \mathbf{m} \setminus n} &\otherwise \\
-                                                                                                                                                                                                                                                                                  \end{cases} \\
-                                                                                                                                                                                                                                                                                \end{aligned}$
-  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ------------------------- -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                            
+  **Identifier**            
+  **Gas usage (**$g$**)**   
+  (lr)1-1(lr)2-2            
+  `historical_lookup` = 7   $\begin{aligned}
+                                \using \mathbf{a} &= \begin{cases}
+                                  \mathbf{d}\subb{s} &\when \registers_7 = 2^{64} - 1 \\
+                                  \mathbf{d}[\registers_7] &\otherwise
+                                \end{cases} \\
+                                \using \sq{h, o} &= \registers\subrange{8}{2} \\
+                                \using z &= \registers_{11} \\
+                                \using \mathbf{v} &= \begin{cases}
+                                  \error &\when \Nrange{h}{32} \not\subseteq \readable{\memory} \\
+                                  \none &\otherwhen \mathbf{a} = \none \\
+                                  \histlookup(\mathbf{a}, t, \memory\subrange{h}{32}) &\otherwise \\
+                                \end{cases} \\
+                                \using f &= \min(\registers_{10}, \len{\mathbf{v}}) \\
+                                \using l &= \min(z, \len{\mathbf{v}} - f) \\
+                                \tup{\execst', \registers'_7, \memory'\subrange{o}{l}} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, \memory\subrange{o}{l}} &\when \mathbf{v} = \error \vee \Nrange{o}{l} \not\subseteq \writable{\memory}\\
+                                  \tup{\blacktriangleright, \mathtt{NONE}, \memory\subrange{o}{l}} &\otherwhen \mathbf{v} = \none \\
+                                  \tup{\blacktriangleright, \len{\mathbf{v}}, \mathbf{v}\subrange{f}{l}} &\otherwise \\
+                                \end{cases} \\
+                                g &\equiv \CgasHconst + \fnmemgas(\CgasHlinear, z)
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `export` = 8              $\begin{aligned}
+                                \using p &= \registers_7 \\
+                                \using z &= \min(\registers_8, \Csegmentsize) \\
+                                \using \mathbf{x} &= \begin{cases}
+                                  \zeropad{\Csegmentsize}{{\memory}\subrange{p}{z}} &\when \Nrange{p}{z} \subseteq \readable{\memory}\\
+                                  \error &\otherwise
+                                \end{cases}\\
+                                \tup{\execst', \registers'_7, \mathbf{e}'} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, \mathbf{e}} &\when \mathbf{x} = \error \\
+                                  \tup{\blacktriangleright, \mathtt{FULL}, \mathbf{e}} &\otherwhen \segoff+\len{\mathbf{e}} \ge \Cmaxpackageexports \\
+                                  \tup{\blacktriangleright, \segoff + \len{\mathbf{e}}, \mathbf{e} \append \mathbf{x}} &\otherwise
+                                \end{cases} \\
+                                g &\equiv \CgasE
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `machine` = 9             $\begin{aligned}
+                                \using \sq{p_O, p_Z, i} &= \registers\subrange{7}{3} \\
+                                \using \mathbf{p} &= \begin{cases}
+                                  \memory\subrange{p_O}{p_Z} &\when \Nrange{p_O}{p_Z} \subseteq \readable{\memory} \\
+                                  \error &\otherwise
+                                \end{cases} \\
+                                \using n &= \min(n \in \N : n \not\in \keys{\mathbf{m}}) \\
+                                \using \mathbf{u} &= \tup{\is{\ramNvalue}{[0, 0, \dots]},\is{\ramNaccess}{[\none, \none, \dots]}} \\
+                                \tup{\execst', \registers'_7, \mathbf{m}} &\equiv \begin{cases}
+                                  \tup{\blacktriangleright, \mathtt{FULL}, \mathbf{m}} &\when \len{\mathbf{m}} \ge 63 \\
+                                  \tup{\panic, \registers_7, \mathbf{m}} &\otherwhen \mathbf{p} = \error \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \mathbf{m}} &\otherwhen \text{deblob}(\mathbf{p}, i) = \error \\
+                                  \tup{\blacktriangleright, n, \mathbf{m} \cup \set{\kv{n}{\tup{\mathbf{p}, \mathbf{u}, i, \bot}}} } &\otherwise \\
+                                \end{cases} \\
+                                g &\equiv \CgasMconst + \fnmemgas(\CgasMlinear, p_Z)
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `peek` = 10               $\begin{aligned}
+                                \using \sq{n, o, s, z} &= \registers\subrange{7}{4} \\
+                                \tup{\execst', \registers'_7, {\memory}'} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, {\memory}} &\when \Nrange{o}{z} \not\subseteq \writable{\memory} \\
+                                  \tup{\blacktriangleright, \mathtt{WHO}, {\memory}} &\otherwhen n \not\in \keys{\mathbf{m}} \\
+                                  \tup{\blacktriangleright, \mathtt{OOB}, {\memory}} &\otherwhen \Nrange{s}{z} \not\subseteq \readable{\mathbf{m}\subb{n}_\pgNram} \\
+                                  \tup{\blacktriangleright, \mathtt{OK}, {\memory}'} &\otherwise \\
+                                  \multicolumn{2}{l}{\where {\memory}' = {\memory}\exc {\memory}\subrange{o}{z} = (\mathbf{m}\subb{n}_\pgNram)\subrange{s}{z}}
+                                \end{cases} \\
+                                g &\equiv \CgasPconst + \fnmemgas(\CgasPlinear, z)
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `poke` = 11               $\begin{aligned}
+                                \using \sq{n, s, o, z} &= \registers\subrange{7}{4} \\
+                                \tup{\execst', \registers'_7, \mathbf{m}'} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, \mathbf{m}} &\when \Nrange{s}{z} \not\subseteq \readable{\memory} \\
+                                  \tup{\blacktriangleright, \mathtt{WHO}, \mathbf{m}} &\otherwhen n \not\in \keys{\mathbf{m}} \\
+                                  \tup{\blacktriangleright, \mathtt{OOB}, \mathbf{m}} &\otherwhen \Nrange{o}{z} \not\subseteq \writable{\mathbf{m}\subb{n}_\pgNram} \\
+                                  \tup{\blacktriangleright, \mathtt{OK}, \mathbf{m}'}  &\otherwise \\
+                                  \multicolumn{2}{l}{\where \mathbf{m}' = \mathbf{m} \exc (\mathbf{m}'\subb{n}_\pgNram)\subrange{o}{z} = {\memory}\subrange{s}{z}}
+                                \end{cases} \\
+                                g &\equiv \CgasOconst + \fnmemgas(\CgasOlinear, z)
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `pages` = 12              $\begin{aligned}
+                                \using \sq{n, p, c, r} &= \registers\subrange{7}{4} \\
+                                \using \mathbf{u} &= \begin{cases}
+                                  \mathbf{m}\subb{n}_\pgNram &\when n \in \keys{\mathbf{m}} \\
+                                  \error &\otherwise\\
+                                \end{cases} \\
+                                \using \mathbf{u}' &= \mathbf{u} \exc \begin{cases}
+                                  (\mathbf{u}'_\ramNvalue)_{p\Cpvmpagesize\dots+c\Cpvmpagesize} = \begin{cases}
+                                   \sq{0, 0, \dots} &\when r < 3 \\
+                                    (\mathbf{u}_\ramNvalue)_{p\Cpvmpagesize\dots+c\Cpvmpagesize} &\otherwise
+                                  \end{cases} \\
+                                  (\mathbf{u}'_\ramNaccess)\subrange{p}{c} = \begin{cases}
+                                    \sq{\none, \none, \dots} &\when r = 0 \\
+                                    \sq{\mathrm{R}, \mathrm{R}, \dots} &\when r \in \set{1, 3} \\
+                                    \sq{\mathrm{W}, \mathrm{W}, \dots} &\when r \in \set{2, 4} \\
+                                  \end{cases}
+                                \end{cases}\\
+                                \tup{\registers'_7, \mathbf{m}'} &\equiv \begin{cases}
+                                  \tup{\mathtt{WHO}, \mathbf{m}} &\when \mathbf{u} = \error \\
+                                  \tup{\mathtt{HUH}, \mathbf{m}} &\otherwhen r > 4 \vee p < 16 \vee p+c \ge \nicefrac{2^{32}}{\Cpvmpagesize} \\
+                                  \tup{\mathtt{HUH}, \mathbf{m}} &\otherwhen r > 2 \wedge (\mathbf{u}_\ramNaccess)\subrange{p}{c} \ni \none \\
+                                  \tup{\mathtt{OK}, \mathbf{m}'} &\otherwise\,,\ \where \mathbf{m}' = \mathbf{m} \exc \mathbf{m}'\subb{n}_\pgNram = \mathbf{u}' \\
+                                \end{cases} \\
+                                g &\equiv \begin{cases}
+                                  \CgasZfreeconst + c \cdot \CgasZfreelinear &\when r = 0 \\
+                                  \CgasZallocconst + c \cdot \CgasZalloclinear &\when r \in \set{1, 2} \\
+                                  \CgasZsetmodeconst + c \cdot \CgasZsetmodelinear &\when r \in \set{3, 4} \\
+                                  \CgasZinvalid &\otherwise
+                                \end{cases}
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `invoke` = 13             $\begin{aligned}
+                                \using \sq{n, o} &= \registers_{7, 8} \\
+                                \using \tup{g_R, \mathbf{w}} &= \begin{cases}
+                                  \tup{g_R, \mathbf{w}}: \encode[8]{g_R} \concat \encode[8]{\mathbf{w}} = {\memory}\subrange{o}{112} &\when \Nrange{o}{112} \subseteq \writable{{\memory}} \\
+                                  %\tup{\decode[8]{\memr\subrange{o}{8}}, \sq{\build{\decode[4]{\memr\subrange{o+8+8x}{8}}}{x \orderedin \Nmax{13}}}} &\when \Nrange{o}{60} \subset \writable_\mem} \\
+                                  \tup{0, \error} &\otherwise
+                                \end{cases} \\
+                                \using \tup{c, i', g_R', \pgNgaschargedflag', \mathbf{w}', \mathbf{u}'} &= \Psi(\mathbf{m}\subb{n}_\pgNcode, \mathbf{m}\subb{n}_\pgNpc, g_R, \mathbf{m}\subb{n}_{\pgNgaschargedflag}, \mathbf{w}, \mathbf{m}\subb{n}_\pgNram)\\
+                                \using {\memory}^* &= {\memory}\exc {\memory}^*\subrange{o}{112} = \encode[8]{g_R'} \concat \encode[8]{\mathbf{w}'}\\
+                                \using \mathbf{m}^* &= \mathbf{m} \exc \begin{cases}
+                                  \mathbf{m}^*\subb{n}_\pgNram = \mathbf{u}'\\
+                                  \mathbf{m}^*\subb{n}_\pgNpc = \begin{cases}
+                                    i' + \text{skip}(i') + 1 &\when c \in \set{ \host } \times \pvmreg\\
+                                    i' &\otherwise
+                                  \end{cases}\\
+                                  \mathbf{m}^*\subb{n}_{\pgNgaschargedflag} = \pgNgaschargedflag'\\
+                                \end{cases}\\
+                                \tup{\execst', \registers'_7, \registers'_8, {\memory}', \mathbf{m}'} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, \registers_8, {\memory}, \mathbf{m}} &\when \mathbf{w} = \error \\
+                                  \tup{\blacktriangleright, \mathtt{WHO}, \registers_8, {\memory}, \mathbf{m}} &\otherwhen n \not\in \keys{\mathbf{m}} \\
+                                  \tup{\blacktriangleright, \mathtt{HOST}, h, {\memory}^*, \mathbf{m}^*} &\otherwhen c = \host \times h \\
+                                  \tup{\blacktriangleright, \mathtt{FAULT}, x, {\memory}^*, \mathbf{m}^*} &\otherwhen c = \fault \times x \\
+                                  \tup{\blacktriangleright, \mathtt{OOG}, \registers_8, {\memory}^*, \mathbf{m}^*} &\otherwhen c = \oog \\
+                                  \tup{\blacktriangleright, \mathtt{PANIC}, \registers_8, {\memory}^*, \mathbf{m}^*} &\otherwhen c = \panic \\
+                                  \tup{\blacktriangleright, \mathtt{HALT}, \registers_8, {\memory}^*, \mathbf{m}^*} &\otherwhen c = \halt \\
+                                \end{cases} \\
+                                g &\equiv \CgasK + g_R \\
+                                \gascounter^* &\equiv \max(\gascounter - g, 0) + \begin{cases}
+                                  0 &\when \mathbf{w} = \error \vee n \not\in \keys{\mathbf{m}} \vee \gascounter < g \\
+                                  g_R' &\otherwise
+                                \end{cases}
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `expunge` = 14            $\begin{aligned}
+                                \using n &= \registers_7 \\
+                                \tup{\registers'_7, \mathbf{m}'} &\equiv \begin{cases}
+                                  \tup{\mathtt{WHO}, \mathbf{m}} &\when n \not\in \keys{\mathbf{m}} \\
+                                  \tup{\mathbf{m}\subb{n}_\pgNpc, \mathbf{m} \setminus n} &\otherwise \\
+                                \end{cases} \\
+                                g &\equiv \CgasX
+                              \end{aligned}$
+  ------------------------- -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-## B.7 Accumulate Functions {#sec:accumulatefunctions}
+### B.5.3 Accumulate Functions {#sec:accumulatefunctions}
 
-This defines a number of functions broadly of the form $(\gascounter' \in \signedgas, \registers' \in \sequence[13]{\pvmreg}, \memory', \tup{\imX', \mathbf{y}'}) = \Omega_\square(\gascounter \in \gas, \registers \in \sequence[13]{\pvmreg}, \memory \in \ram, \imXY \in \implications^2, \dots)$. Functions which have a result component which is equivalent to the corresponding argument may have said components elided in the description. Functions may also depend upon particular additional parameters.
+These assume a context $\imXY \in \implications^2$; see equation [\[eq:implications\]](#eq:implications){reference-type="ref" reference="eq:implications"}. $$\context \equiv \imXY\ ,\qquad \context' \equiv \tup{\imX', \imY'}$$
 
-Other than the gas-counter which is explicitly defined, elements of [pvm]{.smallcaps} state are each assumed to remain unchanged by the host-call unless explicitly specified. $$\begin{aligned}
-  \gascounter' &\equiv \gascounter - g\\
-  \tup{\execst', \registers', \memory', \imX', \mathbf{y}'} &\equiv \begin{cases}
-    \tup{\oog, \registers, \memory, \mathbf{x}, \mathbf{y}} &\when \gascounter < g\\
-    \tup{\blacktriangleright, \registers, \memory, \mathbf{x}, \mathbf{y}} \text{ except as indicated below} &\otherwise
-  \end{cases}\end{aligned}$$
-
-  -------------------------------------------------------- --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-                                                           
-  **Identifier**                                           
-  **Gas usage (**$g$**)**                                  
-  (lr)1-1(lr)2-2                                           
-  `bless` = 15                                             
-  $g = \CgasBconst + n \cdot \CgasBlinear$                 $\begin{aligned}
-                                                               \using \sq{m, a, v, r, o, n} &= \registers\subrange{7}{6} \\
-                                                               \using \mathbf{a} &= \begin{cases}
-                                                                 \decode[4]{\memory\subrange{a}{4\Ccorecount}} &\when \Nrange{a}{4\Ccorecount} \subseteq \readable{\memory} \\
-                                                                 \error &\otherwise
-                                                               \end{cases} \\
-                                                               \using \mathbf{z} &= \begin{cases}
-                                                                 \set{\build{\kv{s}{g} \ \where \encode[4]{s} \concat \encode[8]{g} = \memory\subrange{o+12i}{12}}{i \in \Nmax{n}}} &\when \Nrange{o}{12n} \subseteq \readable{\memory} \\
-                                                                 \error &\otherwise
-                                                               \end{cases} \\
-                                                               \tup{\execst', \registers'_7, (\imX'_\imNstate)_{\tup{\psNmanager, \psNassigners, \psNdelegator, \psNregistrar, \psNalwaysaccers}}} &= \begin{cases}
-                                                                 \tup{\panic, \registers_7, (\imX_\imNstate)_{\tup{\psNmanager, \psNassigners, \psNdelegator, \psNregistrar, \psNalwaysaccers}}} &\when \set{\mathbf{z}, \mathbf{a}} \ni \error \\
-                                                                 \tup{\blacktriangleright, \mathtt{HUH}, (\imX_\imNstate)_{\tup{\psNmanager, \psNassigners, \psNdelegator, \psNregistrar, \psNalwaysaccers}}} &\otherwhen \imX_\imNid \ne (\imX_\imNstate)_\psNmanager \\
-                                                                 \tup{\blacktriangleright, \mathtt{WHO}, (\imX_\imNstate)_{\tup{\psNmanager, \psNassigners, \psNdelegator, \psNregistrar, \psNalwaysaccers}}} &\otherwhen \tup{m, v, r} \not\in \serviceid^3 \\
-                                                                 \tup{\blacktriangleright, \mathtt{OK}, \tuple{m, \mathbf{a}, v, r, \mathbf{z}}} &\otherwise \\
-                                                               \end{cases}
-                                                             \end{aligned}$
-  (lr)1-1(lr)2-2                                           
-  `assign` = 16                                            
-  $g = \CgasA$                                             $\begin{aligned}
-                                                               \using \sq{c, o, a} &= \registers\subrange{7}{3} \\
-                                                               \using \mathbf{q} &= \begin{cases}
-                                                                 \sq{\build{\memory\subrange{o + 32i}{32}}{i \orderedin \N_\Cauthqueuesize}} &\when \Nrange{o}{32\Cauthqueuesize} \subseteq \readable{\memory} \\
-                                                                 \error &\otherwise
-                                                               \end{cases} \\
-                                                               \tup{\execst', \registers'_7, (\imX'_\imNstate)_\psNauthqueue\subb{c}, (\imX'_\imNstate)_\psNassigners\subb{c}} &= \begin{cases}
-                                                                 \tup{\panic, \registers_7, (\imX_\imNstate)_\psNauthqueue\subb{c}, (\imX_\imNstate)_\psNassigners\subb{c}} &\when \mathbf{q} = \error \\
-                                                                 \tup{\blacktriangleright, \mathtt{CORE}, (\imX_\imNstate)_\psNauthqueue\subb{c}, (\imX_\imNstate)_\psNassigners\subb{c}} &\otherwhen c \ge \Ccorecount \\
-                                                                 \tup{\blacktriangleright, \mathtt{HUH}, (\imX_\imNstate)_\psNauthqueue\subb{c}, (\imX_\imNstate)_\psNassigners\subb{c}} &\otherwhen \imX_\imNid \ne (\imX_\imNstate)_\psNassigners\subb{c}\\
-                                                                 \tup{\blacktriangleright, \mathtt{WHO}, (\imX_\imNstate)_\psNauthqueue\subb{c}, (\imX_\imNstate)_\psNassigners\subb{c}} &\otherwhen a \not\in \serviceid \\
-                                                                 \tup{\blacktriangleright, \mathtt{OK}, \mathbf{q}, a} &\otherwise \\
-                                                               \end{cases} \\
-                                                             \end{aligned}$
-  (lr)1-1(lr)2-2                                           
-  `designate` = 17                                         
-  $g = \CgasDconst + z \cdot \CgasDlinear$                 $\begin{aligned}
-                                                               \using \sq{o, z} &= \registers\subrange{7}{2} \\
-                                                               \using \mathbf{v} &= \begin{cases}
-                                                                 \sq{\build{\memory\subrange{o + 336i}{336}}{i \orderedin \N_z}} &\when \Nrange{o}{336z} \subseteq \readable{\memory} \\
-                                                                 \error &\otherwise
-                                                               \end{cases} \\
-                                                               \tup{\execst', \registers'_7, (\imX'_\imNstate)_\psNstagingset} &= \begin{cases}
-                                                                 \tup{\panic, \registers_7, (\imX_\imNstate)_\psNstagingset} &\when \mathbf{v} = \error\\
-                                                                 \tup{\blacktriangleright, \mathtt{HUH}, (\imX_\imNstate)_\psNstagingset} &\otherwhen z \not\in \valcount \vee \imX_\imNid \ne (\imX_\imNstate)_\psNdelegator\\
-                                                                 \tup{\blacktriangleright, \mathtt{OK}, \mathbf{v}} &\otherwise \\
-                                                               \end{cases} \\
-                                                             \end{aligned}$
-  (lr)1-1(lr)2-2                                           
-  `checkpoint` = 18                                        
-  $g = \CgasC$                                             $\begin{aligned}
-                                                               \imY' &\equiv \imX \\
-                                                               \registers'_7 &\equiv \gascounter'
-                                                             \end{aligned}$
-  (lr)1-1(lr)2-2                                           
-  `new` = 19                                               
-  $g = \CgasN$                                             $\begin{aligned}
-                                                               \using \sq{o, l, \saNminaccgas, \saNminmemogas, \saNgratis, i} &= \registers\subrange{7}{6} \\
-                                                               \using \saNcodehash &= \begin{cases}
-                                                                 \memory\subrange{o}{32} &\when \Nrange{o}{32} \subseteq \readable{\memory} \wedge l \in \Nbits{32} \\
-                                                                 \error &\otherwise
-                                                               \end{cases}\\
-                                                               \using \mathbf{a} \in \serviceaccount \cup \set{\error} &= \begin{cases}
-                                                                 \tup{
-                                                                   \saNcodehash,
-                                                                   \is{\mathbf{\saNstorage}}{\emset},
-                                                                   \is{\mathbf{\saNrequests}}{\set{\kv{\tup{c, l}}{\sq{}}}},
-                                                                   \is{\saNbalance}{\mathbf{a}_\saNminbalance},
-                                                                   \saNminaccgas,
-                                                                   \saNminmemogas,
-                                                                   \is{\mathbf{\saNpreimages}}{\emset},
-                                                                   \is{\saNcreated}{t},
-                                                                   \saNgratis,
-                                                                   \is{\saNlastacc}{0},
-                                                                   \is{\saNparent}{\imX_\imNid}
-                                                                 } &\when c \ne \error \\
-                                                                 \error &\otherwise
-                                                               \end{cases} \\
-                                                               \using \mathbf{s} &= \imX_\imNself \exc \mathbf{s}_\saNbalance = (\imX_\imNself)_\saNbalance - \mathbf{a}_\saNminbalance \\
-                                                               \tup{\execst', \registers'_7, \imX'_\imNnextfreeid, (\imX'_\imNstate)_\psNaccounts} &\equiv \begin{cases}
-                                                                 \tup{\panic, \registers_7, \imX_\imNnextfreeid, (\imX_\imNstate)_\psNaccounts} &\when c = \error \\
-                                                                 \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNnextfreeid, (\imX_\imNstate)_\psNaccounts} &\otherwhen f \ne 0 \wedge \imX_\imNid \ne (\imX_\imNstate)_\psNmanager \\
-                                                                 \tup{\blacktriangleright, \mathtt{CASH}, \imX_\imNnextfreeid, (\imX_\imNstate)_\psNaccounts} &\otherwhen \mathbf{s}_\saNbalance < (\imX_\imNself)_\saNminbalance \\
-                                                                 \tup{\blacktriangleright, \mathtt{FULL}, \imX_\imNnextfreeid, (\imX_\imNstate)_\psNaccounts} &\otherwhen \imX_\imNid = (\imX_\imNstate)_\psNregistrar \wedge i< \Cminpublicindex \wedge i\in \keys{(\imX_\imNstate)_\psNaccounts} \\
-                                                                 \tup{\blacktriangleright, i, \imX_\imNnextfreeid, (\imX_\imNstate)_\psNaccounts \cup \mathbf{d}} &\otherwhen \imX_\imNid = (\imX_\imNstate)_\psNregistrar \wedge i< \Cminpublicindex \\
-                                                                 \multicolumn{2}{l}{\quad \where \mathbf{d} = \set{ \kv{i}{\mathbf{a}}, \kv{\imX_\imNid}{\mathbf{s}} }}\\
-                                                                 \tup{\blacktriangleright, \imX_\imNnextfreeid, i^*, (\imX_\imNstate)_\psNaccounts \cup \mathbf{d}} &\otherwise \\
-                                                                 \multicolumn{2}{l}{\quad \where i^* = \text{check}(\Cminpublicindex + (\imX_\imNnextfreeid - \Cminpublicindex + 42) \bmod (2^{32} - \Cminpublicindex - 2^8))}\\
-                                                                 \multicolumn{2}{l}{\quad \also \mathbf{d} = \set{ \kv{\imX_\imNnextfreeid}{\mathbf{a}}, \kv{\imX_\imNid}{\mathbf{s}} }}\\
-                                                               \end{cases} \\
-                                                             \end{aligned}$
-  (lr)1-1(lr)2-2                                           
-  `upgrade` = 20                                           
-  $g = \CgasU$                                             $\begin{aligned}
-                                                               \using \sq{o, g, m} &= \registers\subrange{7}{3} \\
-                                                               \using c &= \begin{cases}
-                                                                 \memory\subrange{o}{32} &\when \Nrange{o}{32} \subseteq \readable{\memory} \\
-                                                                 \error &\otherwise
-                                                               \end{cases} \\
-                                                               \tup{\execst', \registers'_7, (\imX'_\imNself)_\saNcodehash, (\imX'_\imNself)_\saNminaccgas, (\imX'_\imNself)_\saNminmemogas} &\equiv \begin{cases}
-                                                                 \tup{\panic, \registers_7, (\imX_\imNself)_\saNcodehash, (\imX_\imNself)_\saNminaccgas, (\imX_\imNself)_\saNminmemogas} &\when c = \error \\
-                                                                 \tup{\blacktriangleright, \mathtt{OK}, c, g, m} &\otherwise \\
-                                                               \end{cases}
-                                                             \end{aligned}$
-  (lr)1-1(lr)2-2                                           
-  `transfer` = 21                                          
-  $g = \CgasT + t$                                         $\begin{aligned}
-                                                               \using \sq{\dxNdest, \dxNamount, l, o} &= \registers\subrange{7}{4},  \\
-                                                               \using \mathbf{d} &= (\imX_\imNstate)_\psNaccounts\\
-                                                               \using \mathbf{t} \in \defxfer \cup \set{\error} &= \begin{cases}
-                                                                 \tup{
-                                                                   \is{\dxNsource}{\imX_\imNid},
-                                                                   \dxNdest,
-                                                                   \dxNamount,
-                                                                   \is{\dxNmemo}{\memory\subrange{o}{\Cmemosize}},
-                                                                   \is{\dxNgas}{l}
-                                                                 } &\when \Nrange{o}{\Cmemosize} \subseteq \readable{\memory} \\
-                                                                 \error &\otherwise
-                                                               \end{cases} \\
-                                                               \using b &= (\imX_\imNself)_\saNbalance - \dxNamount \\
-                                                               \using \tup{c, t} &= \begin{cases}
-                                                                 \tup{\panic, 0} &\when \mathbf{t} = \error \\
-                                                                 \tup{\mathtt{WHO}, 0} &\otherwhen \dxNdest \not \in \keys{\mathbf{d}} \\
-                                                                 \tup{\mathtt{LOW}, 0} &\otherwhen l < \mathbf{d}[\dxNdest]_\saNminmemogas \\
-                                                                 \tup{\mathtt{CASH}, 0} &\otherwhen b < (\imX_\imNself)_\saNminbalance \\
-                                                                 \tup{\mathtt{OK}, l} &\otherwise
-                                                               \end{cases} \\
-                                                               \tup{\execst', \registers'_7, \imX'_\imNxfers, (\imX'_\imNself)_\saNbalance} &\equiv \begin{cases}
-                                                                 \tup{\panic, \registers_7, \imX_\imNxfers, (\imX_\imNself)_\saNbalance} &\when c = \panic \\
-                                                                 \tup{\blacktriangleright, c, \imX_\imNxfers, (\imX_\imNself)_\saNbalance} &\otherwhen c \ne \mathtt{OK} \\
-                                                                 \tup{\blacktriangleright, \mathtt{OK}, \imX_\imNxfers \append \mathbf{t}, b} &\otherwise
-                                                               \end{cases} \\
-                                                             \end{aligned}$
-  (lr)1-1(lr)2-2                                           
-  `eject` = 22                                             
-  $g = \CgasJ$                                             $\begin{aligned}
-                                                               \using \sq{d, o} &= \registers_{7, 8} \\
-                                                               \using h &= \begin{cases}
-                                                                 \memory\subrange{o}{32} &\when \Nrange{o}{32} \subseteq \readable{\memory} \\
-                                                                 \error &\otherwise
-                                                               \end{cases} \\
-                                                               \using \mathbf{d} &= \begin{cases}
-                                                                 (\imX_\imNstate)_\psNaccounts\subb{d} &\when d \ne \imX_\imNid \wedge d \in \keys{(\imX_\imNstate)_\psNaccounts} \\
-                                                                 \error &\otherwise \\
-                                                               \end{cases} \\
-                                                               \using l &= \max(81, \mathbf{d}_\saNoctets) - 81 \\
-                                                               \using \mathbf{s}' &= \imX_\imNself \exc \mathbf{s}'_\saNbalance = (\imX_\imNself)_\saNbalance + \mathbf{d}_\saNbalance \\
-                                                               \tup{\execst', \registers'_7, (\imX'_\imNstate)_\psNaccounts} &\equiv \begin{cases}
-                                                                 \tup{\panic, \registers_7, (\imX_\imNstate)_\psNaccounts} &\when h = \error \\
-                                                                 \tup{\blacktriangleright, \mathtt{WHO}, (\imX_\imNstate)_\psNaccounts} &\otherwhen \mathbf{d} = \error \vee \mathbf{d}_\saNcodehash \ne \encode[32]{\imX_\imNid} \\
-                                                                 \tup{\blacktriangleright, \mathtt{HUH}, (\imX_\imNstate)_\psNaccounts} &\otherwhen \mathbf{d}_\saNitems \ne 2 \vee \tup{h, l} \not\in \mathbf{d}_\saNrequests \\
-                                                                 \tup{\blacktriangleright, \mathtt{OK}, (\imX_\imNstate)_\psNaccounts \setminus \set{d} \cup \set{ \kv{\imX_\imNid}{\mathbf{s}'} }} &\otherwhen \mathbf{d}_\saNrequests\subb{h, l} = \sq{x, y}, y < t - \Cexpungeperiod \\
-                                                                 \tup{\blacktriangleright, \mathtt{HUH}, (\imX_\imNstate)_\psNaccounts} &\otherwise \\
-                                                               \end{cases} \\
-                                                             \end{aligned}$
-  (lr)1-1(lr)2-2                                           
-  `query` = 23                                             
-  $g = \CgasQ$                                             $\begin{aligned}
-                                                               \using \sq{o, z} &= \registers_{7, 8} \\
-                                                               \using h &= \begin{cases}
-                                                                 \memory\subrange{o}{32} &\when \Nrange{o}{32} \subseteq \readable{\memory} \\
-                                                                 \error &\otherwise
-                                                               \end{cases} \\
-                                                               \using \mathbf{a} &= \begin{cases}
-                                                                 (\imX_\imNself)_\saNrequests\subb{h, z} &\when \tup{h, z} \in \keys{(\imX_\imNself)_\saNrequests}\\
-                                                                 \error &\otherwise\\
-                                                               \end{cases} \\
-                                                               \tup{\execst', \registers'_7, \registers'_8} &\equiv \begin{cases}
-                                                                 \tup{\blacktriangleright, \mathtt{HUH}, \registers_8} &\when z \not\in \bloblength \\
-                                                                 \tup{\panic, \registers_7, \registers_8} &\otherwhen h = \error \\
-                                                                 \tup{\blacktriangleright, \mathtt{NONE}, 0} &\otherwhen \mathbf{a} = \error \\
-                                                                 \tup{\blacktriangleright, 0, 0} &\otherwhen \mathbf{a} = \sq{} \\
-                                                                 \tup{\blacktriangleright, 1 + 2^{32}x, 0} &\otherwhen \mathbf{a} = \sq{x} \\
-                                                                 \tup{\blacktriangleright, 2 + 2^{32}x, y} &\otherwhen \mathbf{a} = \sq{x, y} \\
-                                                                 \tup{\blacktriangleright, 3 + 2^{32}x, y + 2^{32}z} &\otherwhen \mathbf{a} = \sq{x, y, z} \\
-                                                               \end{cases} \\
-                                                             \end{aligned}$
-  (lr)1-1(lr)2-2                                           
-  `solicit` = 24                                           
-  $g = \CgasS$                                             $\begin{aligned}
-                                                               \using \sq{o, z} &= \registers_{7, 8} \\
-                                                               \using h &= \begin{cases}
-                                                                 \memory\subrange{o}{32} &\when \Nrange{o}{32} \subseteq \readable{\memory} \\
-                                                                 \error &\otherwise
-                                                               \end{cases} \\
-                                                               \using \mathbf{a} &= \begin{cases}
-                                                                 \imX_\imNself \text{ except: } &\\
-                                                                 \quad \mathbf{a}_\saNrequests\subb{\tup{h, z}} = \sq{} &\when h \ne \error \wedge \tup{h, z} \not\in \keys{(\imX_\imNself)_\saNrequests} \\
-                                                                 \quad \mathbf{a}_\saNrequests\subb{\tup{h, z}} = (\imX_\imNself)_\saNrequests\subb{\tup{h, z}} \append t &\when (\imX_\imNself)_\saNrequests\subb{\tup{h, z}} = \sq{x, y} \\
-                                                                 \error &\otherwise\\
-                                                               \end{cases} \\
-                                                               \tup{\execst', \registers'_7, \imX'_\imNself} &\equiv \begin{cases}
-                                                                 \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNself} &\when z \not \in \bloblength \\
-                                                                 \tup{\panic, \registers_7, \imX_\imNself} &\otherwhen h = \error \\
-                                                                 \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNself} &\otherwhen \mathbf{a} = \error \\
-                                                                 \tup{\blacktriangleright, \mathtt{FULL}, \imX_\imNself} &\otherwhen \mathbf{a}_\saNbalance < \mathbf{a}_\saNminbalance \\
-                                                                 \tup{\blacktriangleright, \mathtt{OK}, \mathbf{a}} &\otherwise \\
-                                                               \end{cases} \\
-                                                             \end{aligned}$
-  (lr)1-1(lr)2-2                                           
-  `forget` = 25                                            
-  $g = \CgasF$                                             $\begin{aligned}
-                                                               \using \sq{o, z} &= \registers_{7, 8} \\
-                                                               \using h &= \begin{cases}
-                                                                 \memory\subrange{o}{32} &\when \Nrange{o}{32} \subseteq \readable{\memory} \\
-                                                                 \error &\otherwise
-                                                               \end{cases} \\
-                                                               \using \mathbf{a} &= \begin{cases}
-                                                                 \imX_\imNself \text{ except:} &\\
-                                                                 \quad \left.
-                                                                   \begin{aligned}
-                                                                     \keys{\mathbf{a}_\saNrequests} &= \keys{(\imX_\imNself)_\saNrequests} \setminus \set{\tup{h, z}}\ ,\\[2pt]
-                                                                     \keys{\mathbf{a}_\saNpreimages} &= \keys{(\imX_\imNself)_\saNpreimages} \setminus \set{h}
-                                                                   \end{aligned}
-                                                                 \ \right\} &\when (\imX_\imNself)_\saNrequests\subb{h, z} \in \set{\sq{}, \sq{x, y}},\ y < t - \Cexpungeperiod \\
-                                                                 \quad \mathbf{a}_\saNrequests\subb{h, z} = \sq{x, t} &\when (\imX_\imNself)_\saNrequests\subb{h, z} = \sq{x} \\
-                                                                 \quad \mathbf{a}_\saNrequests\subb{h, z} = \sq{w, t} &\when (\imX_\imNself)_\saNrequests\subb{h, z} = \sq{x, y, w},\ y < t - \Cexpungeperiod \\
-                                                                 \error &\otherwise\\
-                                                               \end{cases} \\
-                                                               \tup{\execst', \registers'_7, \imX'_\imNself} &\equiv \begin{cases}
-                                                                 \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNself} &\when z \not \in \bloblength \\
-                                                                 \tup{\panic, \registers_7, \imX_\imNself} &\otherwhen h = \error \\
-                                                                 \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNself} &\otherwhen \mathbf{a} = \error \\
-                                                                 \tup{\blacktriangleright, \mathtt{OK}, \mathbf{a}} &\otherwise \\
-                                                               \end{cases} \\
-                                                             \end{aligned}$
-  (lr)1-1(lr)2-2                                           
-  `yield` = 26                                             
-  $g = \CgasTaurus$                                        $\begin{aligned}
-                                                               \using o &= \registers_7 \\
-                                                               \using h &= \begin{cases}
-                                                                 \memory\subrange{o}{32} &\when \Nrange{o}{32} \subseteq \readable{\memory} \\
-                                                                 \error &\otherwise
-                                                               \end{cases} \\
-                                                               \tup{\execst', \registers'_7, \imX'_\imNyield} &\equiv \begin{cases}
-                                                                 \tup{\panic, \registers_7, \imX_\imNyield} &\when h = \error \\
-                                                                 \tup{\blacktriangleright, \mathtt{OK}, h} &\otherwise \\
-                                                               \end{cases} \\
-                                                             \end{aligned}$
-  (lr)1-1(lr)2-2                                           
-  `provide` = 27                                           
-  $g = \CgasAriesconst + \fnmemgas(\CgasArieslinear, z)$   $\begin{aligned}
-                                                               \using \sq{o, z} &= \registers_{8, 9} \\
-                                                               \using \mathbf{d} &= (\imX_\imNstate)_\psNaccounts\\
-                                                               \using s &= \begin{cases}
-                                                                 \imX_\imNid &\when \registers_7 = 2^{64} - 1 \\
-                                                                 \registers_7 &\otherwise
-                                                               \end{cases} \\
-                                                               \using \mathbf{i} &= \begin{cases}
-                                                                 \memory\subrange{o}{z} &\when \Nrange{o}{z} \subseteq \readable{\memory} \\
-                                                                 \error &\otherwise
-                                                               \end{cases} \\
-                                                               \using \mathbf{a} &= \begin{cases}
-                                                                 \mathbf{d}[s] &\when s \in \keys{\mathbf{d}} \\
-                                                                 \none &\otherwise
-                                                               \end{cases} \\
-                                                               \tup{\execst', \registers'_7, \imX'_\imNprovisions} &\equiv \begin{cases}
-                                                                 \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNprovisions} &\when z \not \in \bloblength \\
-                                                                 \tup{\panic, \registers_7, \imX_\imNprovisions} &\otherwhen \mathbf{i} = \error \\
-                                                                 \tup{\blacktriangleright, \mathtt{WHO}, \imX_\imNprovisions} &\otherwhen \mathbf{a} = \none \\
-                                                                 \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNprovisions} &\otherwhen \mathbf{a}_\saNrequests[\tup{\blake{\mathbf{i}}, z}] \ne \sq{} \\
-                                                                 \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNprovisions} &\otherwhen \tup{s, \mathbf{i}} \in \imX_\imNprovisions \\
-                                                                 \tup{\blacktriangleright, \mathtt{OK}, \imX_\imNprovisions \cup \set{\tup{s, \mathbf{i}}}} &\otherwise \\
-                                                               \end{cases} \\
-                                                             \end{aligned}$
-  -------------------------------------------------------- --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ------------------------- --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                            
+  **Identifier**            
+  **Gas usage (**$g$**)**   
+  (lr)1-1(lr)2-2            
+  `lookup` = 3              $\begin{aligned}
+                                \using \mathbf{a} &= \begin{cases}
+                                  \imX_\imNself &\when \registers_7 = 2^{64} - 1 \\
+                                  (\imX_\imNstate)_\psNaccounts[\registers_7] &\otherwise
+                                \end{cases} \\
+                                \using \sq{h, o} &= \registers\subrange{8}{2} \\
+                                \using z &= \registers_{11} \\
+                                \using \mathbf{v} &= \begin{cases}
+                                  \error &\when \Nrange{h}{32} \not\subseteq \readable{\memory} \\
+                                  \none &\otherwhen \mathbf{a} = \none \\
+                                  \mathbf{a}_\saNpreimages[\memory\subrange{h}{32}] &\otherwise \\
+                                \end{cases} \\
+                                \using f &= \min(\registers_{10}, \len{\mathbf{v}}) \\
+                                \using l &= \min(z, \len{\mathbf{v}} - f) \\
+                                \tup{\execst', \registers'_7, \memory'\subrange{o}{l}} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, \memory\subrange{o}{l}} &\when \mathbf{v} = \error \vee \Nrange{o}{l} \not\subseteq \writable{\memory}\\
+                                  \tup{\blacktriangleright, \mathtt{NONE}, \memory\subrange{o}{l}} &\otherwhen \mathbf{v} = \none \\
+                                  \tup{\blacktriangleright, \len{\mathbf{v}}, \mathbf{v}\subrange{f}{l}} &\otherwise \\
+                                \end{cases} \\
+                                g &\equiv \CgasLconst + \fnmemgas(\CgasLlinear, z)
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `read` = 4                $\begin{aligned}
+                                \using \mathbf{a} &= \begin{cases}
+                                  \imX_\imNself &\when \registers_7 = 2^{64} - 1 \\
+                                  (\imX_\imNstate)_\psNaccounts[\registers_7] &\otherwise
+                                \end{cases} \\
+                                \using \sq{k_O, k_Z, o} &= \registers\subrange{8}{3} \\
+                                \using v_Z &= \registers_{12} \\
+                                \using \mathbf{v} &= \begin{cases}
+                                  \error &\when \Nrange{k_O}{k_Z} \not\subseteq \readable{\memory} \\
+                                  \none &\otherwhen \mathbf{a} = \none \\
+                                  \mathbf{a}_\saNstorage\subb{\memory\subrange{k_O}{k_Z}} &\otherwise
+                                \end{cases} \\
+                                \using f &= \min(\registers_{11}, \len{\mathbf{v}}) \\
+                                \using l &= \min(v_Z, \len{\mathbf{v}} - f) \\
+                                \tup{\execst', \registers'_7, \memory'\subrange{o}{l}} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, \memory\subrange{o}{l}} &\when \mathbf{v} = \error \vee \Nrange{o}{l} \not\subseteq \writable{\memory}\\
+                                  \tup{\blacktriangleright, \mathtt{NONE}, \memory\subrange{o}{l}} &\otherwhen \mathbf{v} = \none \\
+                                  \tup{\blacktriangleright, \len{\mathbf{v}}, \mathbf{v}\subrange{f}{l}} &\otherwise \\
+                                \end{cases} \\
+                                g &\equiv \CgasRconst + \fnmemgas(\CgasRkeylinear, k_Z) + \fnmemgas(\CgasRvallinear, v_Z)
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `write` = 5               $\begin{aligned}
+                                \using \sq{k_O, k_Z, v_O, v_Z} &= \registers\subrange{7}{4} \\
+                                \using \mathbf{k} &= \begin{cases}
+                                  \memory\subrange{k_O}{k_Z} &\when \Nrange{k_O}{k_Z} \subseteq \readable{\memory} \\
+                                  \error &\otherwise
+                                \end{cases} \\
+                                \using \mathbf{a} &= \begin{cases}
+                                  \imX_\imNself\,,\ \exc \mathbf{k} \not\in \keys{\mathbf{a}_\saNstorage} & \when v_Z = 0 \\
+                                  \imX_\imNself\,,\ \exc \mathbf{a}_\saNstorage\subb{\mathbf{k}} = \memory\subrange{v_O}{v_Z} &\otherwhen \Nrange{v_O}{v_Z} \subseteq \readable{\memory} \\
+                                  \error &\otherwise
+                                \end{cases} \\
+                                \using l &= \begin{cases}
+                                  \len{(\imX_\imNself)_\saNstorage\subb{\mathbf{k}}} &\when \mathbf{k} \in \keys{(\imX_\imNself)_\saNstorage} \\
+                                  \mathtt{NONE} &\otherwise
+                                \end{cases} \\
+                                \tup{\execst', \registers'_7, \imX_\imNself'} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, \imX_\imNself} &\when \mathbf{k} = \error \vee \mathbf{a} = \error\\
+                                  \tup{\blacktriangleright, \mathtt{FULL}, \imX_\imNself} &\otherwhen \mathbf{a}_\saNminbalance > \mathbf{a}_\saNbalance \\
+                                  \tup{\blacktriangleright, l, \mathbf{a}} &\otherwise\\
+                                \end{cases} \\
+                                g &\equiv \CgasWconst + \fnmemgas(\CgasWkeylinear, k_Z) + \fnmemgas(\CgasWvallinear, v_Z)
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `info` = 6                $\begin{aligned}
+                                \using \mathbf{a} &= \begin{cases}
+                                  \imX_\imNself &\when \registers_7 = 2^{64} - 1 \\
+                                  (\imX_\imNstate)_\psNaccounts\subb{\registers_7} &\otherwise
+                                \end{cases} \\
+                                \using o &= \registers_8 \\
+                                \using \mathbf{v} &= \begin{cases}
+                                  \encode{
+                                    \mathbf{a}_\saNcodehash,
+                                    \encode[8]{\mathbf{a}_\saNbalance, \mathbf{a}_\saNminbalance, \mathbf{a}_\saNminaccgas, \mathbf{a}_\saNminmemogas, \mathbf{a}_\saNoctets},
+                                    \encode[4]{\mathbf{a}_\saNitems},
+                                    \encode[8]{\mathbf{a}_\saNgratis},
+                                    \encode[4]{\mathbf{a}_\saNcreated, \mathbf{a}_\saNlastacc, \mathbf{a}_\saNparent}
+                                  } &\when \mathbf{a} \ne \none \\
+                                  \none &\otherwise
+                                \end{cases} \\
+                                \using f &= \min(\registers_{9}, \len{\mathbf{v}}) \\
+                                \using l &= \min(\registers_{10}, \len{\mathbf{v}} - f) \\
+                                \tup{\execst', \registers'_7, \memory'\subrange{o}{l}} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, \memory\subrange{o}{l}} &\when \Nrange{o}{l} \not\subseteq \writable{\memory}\\
+                                  \tup{\blacktriangleright, \mathtt{NONE}, \memory\subrange{o}{l}} &\otherwhen \mathbf{v} = \none \\
+                                  \tup{\blacktriangleright, \len{\mathbf{v}}, \mathbf{v}\subrange{f}{l}} &\otherwise \\
+                                \end{cases} \\
+                                g &\equiv \CgasI
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `bless` = 15              $\begin{aligned}
+                                \using \sq{m, a, v, r, o, n} &= \registers\subrange{7}{6} \\
+                                \using \mathbf{a} &= \begin{cases}
+                                  \decode[4]{\memory\subrange{a}{4\Ccorecount}} &\when \Nrange{a}{4\Ccorecount} \subseteq \readable{\memory} \\
+                                  \error &\otherwise
+                                \end{cases} \\
+                                \using \mathbf{z} &= \begin{cases}
+                                  \set{\build{\kv{s}{g} \ \where \encode[4]{s} \concat \encode[8]{g} = \memory\subrange{o+12i}{12}}{i \in \Nmax{n}}} &\when \Nrange{o}{12n} \subseteq \readable{\memory} \\
+                                  \error &\otherwise
+                                \end{cases} \\
+                                \tup{\execst', \registers'_7, (\imX'_\imNstate)_{\tup{\psNmanager, \psNassigners, \psNdelegator, \psNregistrar, \psNalwaysaccers}}} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, (\imX_\imNstate)_{\tup{\psNmanager, \psNassigners, \psNdelegator, \psNregistrar, \psNalwaysaccers}}} &\when \set{\mathbf{z}, \mathbf{a}} \ni \error \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, (\imX_\imNstate)_{\tup{\psNmanager, \psNassigners, \psNdelegator, \psNregistrar, \psNalwaysaccers}}} &\otherwhen \imX_\imNid \ne (\imX_\imNstate)_\psNmanager \\
+                                  \tup{\blacktriangleright, \mathtt{WHO}, (\imX_\imNstate)_{\tup{\psNmanager, \psNassigners, \psNdelegator, \psNregistrar, \psNalwaysaccers}}} &\otherwhen \tup{m, v, r} \not\in \serviceid^3 \\
+                                  \tup{\blacktriangleright, \mathtt{OK}, \tuple{m, \mathbf{a}, v, r, \mathbf{z}}} &\otherwise \\
+                                \end{cases} \\
+                                g &\equiv \CgasBconst + n \cdot \CgasBlinear
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `assign` = 16             $\begin{aligned}
+                                \using \sq{c, o, a} &= \registers\subrange{7}{3} \\
+                                \using \mathbf{q} &= \begin{cases}
+                                  \sq{\build{\memory\subrange{o + 32i}{32}}{i \orderedin \N_\Cauthqueuesize}} &\when \Nrange{o}{32\Cauthqueuesize} \subseteq \readable{\memory} \\
+                                  \error &\otherwise
+                                \end{cases} \\
+                                \tup{\execst', \registers'_7, (\imX'_\imNstate)_\psNauthqueue\subb{c}, (\imX'_\imNstate)_\psNassigners\subb{c}} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, (\imX_\imNstate)_\psNauthqueue\subb{c}, (\imX_\imNstate)_\psNassigners\subb{c}} &\when \mathbf{q} = \error \\
+                                  \tup{\blacktriangleright, \mathtt{CORE}, (\imX_\imNstate)_\psNauthqueue\subb{c}, (\imX_\imNstate)_\psNassigners\subb{c}} &\otherwhen c \ge \Ccorecount \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, (\imX_\imNstate)_\psNauthqueue\subb{c}, (\imX_\imNstate)_\psNassigners\subb{c}} &\otherwhen \imX_\imNid \ne (\imX_\imNstate)_\psNassigners\subb{c}\\
+                                  \tup{\blacktriangleright, \mathtt{WHO}, (\imX_\imNstate)_\psNauthqueue\subb{c}, (\imX_\imNstate)_\psNassigners\subb{c}} &\otherwhen a \not\in \serviceid \\
+                                  \tup{\blacktriangleright, \mathtt{OK}, \mathbf{q}, a} &\otherwise \\
+                                \end{cases} \\
+                                g &\equiv \CgasA
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `designate` = 17          $\begin{aligned}
+                                \using \sq{o, z} &= \registers\subrange{7}{2} \\
+                                \using \mathbf{v} &= \begin{cases}
+                                  \sq{\build{\memory\subrange{o + 336i}{336}}{i \orderedin \N_z}} &\when \Nrange{o}{336z} \subseteq \readable{\memory} \\
+                                  \error &\otherwise
+                                \end{cases} \\
+                                \tup{\execst', \registers'_7, (\imX'_\imNstate)_\psNstagingset} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, (\imX_\imNstate)_\psNstagingset} &\when \mathbf{v} = \error\\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, (\imX_\imNstate)_\psNstagingset} &\otherwhen z \not\in \valcount \vee \imX_\imNid \ne (\imX_\imNstate)_\psNdelegator\\
+                                  \tup{\blacktriangleright, \mathtt{OK}, \mathbf{v}} &\otherwise \\
+                                \end{cases} \\
+                                g &\equiv \CgasDconst + z \cdot \CgasDlinear
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `checkpoint` = 18         $\begin{aligned}
+                                \imY' &\equiv \imX \\
+                                \registers'_7 &\equiv \gascounter^* \\
+                                g &\equiv \CgasC
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `new` = 19                $\begin{aligned}
+                                \using \sq{o, l, \saNminaccgas, \saNminmemogas, \saNgratis, i} &= \registers\subrange{7}{6} \\
+                                \using \saNcodehash &= \begin{cases}
+                                  \memory\subrange{o}{32} &\when \Nrange{o}{32} \subseteq \readable{\memory} \wedge l \in \Nbits{32} \\
+                                  \error &\otherwise
+                                \end{cases}\\
+                                \using \mathbf{a} \in \serviceaccount \cup \set{\error} &= \begin{cases}
+                                  \tup{
+                                    \saNcodehash,
+                                    \is{\mathbf{\saNstorage}}{\emset},
+                                    \is{\mathbf{\saNrequests}}{\set{\kv{\tup{c, l}}{\sq{}}}},
+                                    \is{\saNbalance}{\mathbf{a}_\saNminbalance},
+                                    \saNminaccgas,
+                                    \saNminmemogas,
+                                    \is{\mathbf{\saNpreimages}}{\emset},
+                                    \is{\saNcreated}{t},
+                                    \saNgratis,
+                                    \is{\saNlastacc}{0},
+                                    \is{\saNparent}{\imX_\imNid}
+                                  } &\when c \ne \error \\
+                                  \error &\otherwise
+                                \end{cases} \\
+                                \using \mathbf{s} &= \imX_\imNself \exc \mathbf{s}_\saNbalance = (\imX_\imNself)_\saNbalance - \mathbf{a}_\saNminbalance \\
+                                \tup{\execst', \registers'_7, \imX'_\imNnextfreeid, (\imX'_\imNstate)_\psNaccounts} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, \imX_\imNnextfreeid, (\imX_\imNstate)_\psNaccounts} &\when c = \error \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNnextfreeid, (\imX_\imNstate)_\psNaccounts} &\otherwhen f \ne 0 \wedge \imX_\imNid \ne (\imX_\imNstate)_\psNmanager \\
+                                  \tup{\blacktriangleright, \mathtt{CASH}, \imX_\imNnextfreeid, (\imX_\imNstate)_\psNaccounts} &\otherwhen \mathbf{s}_\saNbalance < (\imX_\imNself)_\saNminbalance \\
+                                  \tup{\blacktriangleright, \mathtt{FULL}, \imX_\imNnextfreeid, (\imX_\imNstate)_\psNaccounts} &\otherwhen \imX_\imNid = (\imX_\imNstate)_\psNregistrar \wedge i< \Cminpublicindex \wedge i\in \keys{(\imX_\imNstate)_\psNaccounts} \\
+                                  \tup{\blacktriangleright, i, \imX_\imNnextfreeid, (\imX_\imNstate)_\psNaccounts \cup \mathbf{d}} &\otherwhen \imX_\imNid = (\imX_\imNstate)_\psNregistrar \wedge i< \Cminpublicindex \\
+                                  \multicolumn{2}{l}{\quad \where \mathbf{d} = \set{ \kv{i}{\mathbf{a}}, \kv{\imX_\imNid}{\mathbf{s}} }}\\
+                                  \tup{\blacktriangleright, \imX_\imNnextfreeid, i^*, (\imX_\imNstate)_\psNaccounts \cup \mathbf{d}} &\otherwise \\
+                                  \multicolumn{2}{l}{\quad \where i^* = \text{check}(\Cminpublicindex + (\imX_\imNnextfreeid - \Cminpublicindex + 42) \bmod (2^{32} - \Cminpublicindex - 2^8))}\\
+                                  \multicolumn{2}{l}{\quad \also \mathbf{d} = \set{ \kv{\imX_\imNnextfreeid}{\mathbf{a}}, \kv{\imX_\imNid}{\mathbf{s}} }}\\
+                                \end{cases} \\
+                                g &\equiv \CgasN
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `upgrade` = 20            $\begin{aligned}
+                                \using \sq{o, a, m} &= \registers\subrange{7}{3} \\
+                                \using c &= \begin{cases}
+                                  \memory\subrange{o}{32} &\when \Nrange{o}{32} \subseteq \readable{\memory} \\
+                                  \error &\otherwise
+                                \end{cases} \\
+                                \tup{\execst', \registers'_7, (\imX'_\imNself)_\saNcodehash, (\imX'_\imNself)_\saNminaccgas, (\imX'_\imNself)_\saNminmemogas} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, (\imX_\imNself)_\saNcodehash, (\imX_\imNself)_\saNminaccgas, (\imX_\imNself)_\saNminmemogas} &\when c = \error \\
+                                  \tup{\blacktriangleright, \mathtt{OK}, c, a, m} &\otherwise \\
+                                \end{cases} \\
+                                g &\equiv \CgasU
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `transfer` = 21           $\begin{aligned}
+                                \using \sq{\dxNdest, \dxNamount, l, o} &= \registers\subrange{7}{4},  \\
+                                \using \mathbf{d} &= (\imX_\imNstate)_\psNaccounts\\
+                                \using \mathbf{t} \in \defxfer \cup \set{\error} &= \begin{cases}
+                                  \tup{
+                                    \is{\dxNsource}{\imX_\imNid},
+                                    \dxNdest,
+                                    \dxNamount,
+                                    \is{\dxNmemo}{\memory\subrange{o}{\Cmemosize}},
+                                    \is{\dxNgas}{l}
+                                  } &\when \Nrange{o}{\Cmemosize} \subseteq \readable{\memory} \\
+                                  \error &\otherwise
+                                \end{cases} \\
+                                \using b &= (\imX_\imNself)_\saNbalance - \dxNamount \\
+                                \using \tup{c, t} &= \begin{cases}
+                                  \tup{\panic, 0} &\when \mathbf{t} = \error \\
+                                  \tup{\mathtt{WHO}, 0} &\otherwhen \dxNdest \not \in \keys{\mathbf{d}} \\
+                                  \tup{\mathtt{LOW}, 0} &\otherwhen l < \mathbf{d}[\dxNdest]_\saNminmemogas \\
+                                  \tup{\mathtt{CASH}, 0} &\otherwhen b < (\imX_\imNself)_\saNminbalance \\
+                                  \tup{\mathtt{OK}, l} &\otherwise
+                                \end{cases} \\
+                                \tup{\execst', \registers'_7, \imX'_\imNxfers, (\imX'_\imNself)_\saNbalance} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, \imX_\imNxfers, (\imX_\imNself)_\saNbalance} &\when c = \panic \\
+                                  \tup{\blacktriangleright, c, \imX_\imNxfers, (\imX_\imNself)_\saNbalance} &\otherwhen c \ne \mathtt{OK} \\
+                                  \tup{\blacktriangleright, \mathtt{OK}, \imX_\imNxfers \append \mathbf{t}, b} &\otherwise
+                                \end{cases} \\
+                                g &\equiv \CgasT + t
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `eject` = 22              $\begin{aligned}
+                                \using \sq{d, o} &= \registers_{7, 8} \\
+                                \using h &= \begin{cases}
+                                  \memory\subrange{o}{32} &\when \Nrange{o}{32} \subseteq \readable{\memory} \\
+                                  \error &\otherwise
+                                \end{cases} \\
+                                \using \mathbf{d} &= \begin{cases}
+                                  (\imX_\imNstate)_\psNaccounts\subb{d} &\when d \ne \imX_\imNid \wedge d \in \keys{(\imX_\imNstate)_\psNaccounts} \\
+                                  \error &\otherwise \\
+                                \end{cases} \\
+                                \using l &= \max(81, \mathbf{d}_\saNoctets) - 81 \\
+                                \using \mathbf{s}' &= \imX_\imNself \exc \mathbf{s}'_\saNbalance = (\imX_\imNself)_\saNbalance + \mathbf{d}_\saNbalance \\
+                                \tup{\execst', \registers'_7, (\imX'_\imNstate)_\psNaccounts} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, (\imX_\imNstate)_\psNaccounts} &\when h = \error \\
+                                  \tup{\blacktriangleright, \mathtt{WHO}, (\imX_\imNstate)_\psNaccounts} &\otherwhen \mathbf{d} = \error \vee \mathbf{d}_\saNcodehash \ne \encode[32]{\imX_\imNid} \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, (\imX_\imNstate)_\psNaccounts} &\otherwhen \mathbf{d}_\saNitems \ne 2 \vee \tup{h, l} \not\in \mathbf{d}_\saNrequests \\
+                                  \tup{\blacktriangleright, \mathtt{OK}, (\imX_\imNstate)_\psNaccounts \setminus \set{d} \cup \set{ \kv{\imX_\imNid}{\mathbf{s}'} }} &\otherwhen \mathbf{d}_\saNrequests\subb{h, l} = \sq{x, y}, y < t - \Cexpungeperiod \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, (\imX_\imNstate)_\psNaccounts} &\otherwise \\
+                                \end{cases} \\
+                                g &\equiv \CgasJ
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `query` = 23              $\begin{aligned}
+                                \using \sq{o, z} &= \registers_{7, 8} \\
+                                \using h &= \begin{cases}
+                                  \memory\subrange{o}{32} &\when \Nrange{o}{32} \subseteq \readable{\memory} \\
+                                  \error &\otherwise
+                                \end{cases} \\
+                                \using \mathbf{a} &= \begin{cases}
+                                  (\imX_\imNself)_\saNrequests\subb{h, z} &\when \tup{h, z} \in \keys{(\imX_\imNself)_\saNrequests}\\
+                                  \error &\otherwise\\
+                                \end{cases} \\
+                                \tup{\execst', \registers'_7, \registers'_8} &\equiv \begin{cases}
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \registers_8} &\when z \not\in \bloblength \\
+                                  \tup{\panic, \registers_7, \registers_8} &\otherwhen h = \error \\
+                                  \tup{\blacktriangleright, \mathtt{NONE}, 0} &\otherwhen \mathbf{a} = \error \\
+                                  \tup{\blacktriangleright, 0, 0} &\otherwhen \mathbf{a} = \sq{} \\
+                                  \tup{\blacktriangleright, 1 + 2^{32}x, 0} &\otherwhen \mathbf{a} = \sq{x} \\
+                                  \tup{\blacktriangleright, 2 + 2^{32}x, y} &\otherwhen \mathbf{a} = \sq{x, y} \\
+                                  \tup{\blacktriangleright, 3 + 2^{32}x, y + 2^{32}z} &\otherwhen \mathbf{a} = \sq{x, y, z} \\
+                                \end{cases} \\
+                                g &\equiv \CgasQ
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `solicit` = 24            $\begin{aligned}
+                                \using \sq{o, z} &= \registers_{7, 8} \\
+                                \using h &= \begin{cases}
+                                  \memory\subrange{o}{32} &\when \Nrange{o}{32} \subseteq \readable{\memory} \\
+                                  \error &\otherwise
+                                \end{cases} \\
+                                \using \mathbf{a} &= \begin{cases}
+                                  \imX_\imNself \text{ except: } &\\
+                                  \quad \mathbf{a}_\saNrequests\subb{\tup{h, z}} = \sq{} &\when h \ne \error \wedge \tup{h, z} \not\in \keys{(\imX_\imNself)_\saNrequests} \\
+                                  \quad \mathbf{a}_\saNrequests\subb{\tup{h, z}} = (\imX_\imNself)_\saNrequests\subb{\tup{h, z}} \append t &\when (\imX_\imNself)_\saNrequests\subb{\tup{h, z}} = \sq{x, y} \\
+                                  \error &\otherwise\\
+                                \end{cases} \\
+                                \tup{\execst', \registers'_7, \imX'_\imNself} &\equiv \begin{cases}
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNself} &\when z \not \in \bloblength \\
+                                  \tup{\panic, \registers_7, \imX_\imNself} &\otherwhen h = \error \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNself} &\otherwhen \mathbf{a} = \error \\
+                                  \tup{\blacktriangleright, \mathtt{FULL}, \imX_\imNself} &\otherwhen \mathbf{a}_\saNbalance < \mathbf{a}_\saNminbalance \\
+                                  \tup{\blacktriangleright, \mathtt{OK}, \mathbf{a}} &\otherwise \\
+                                \end{cases} \\
+                                g &\equiv \CgasS
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `forget` = 25             $\begin{aligned}
+                                \using \sq{o, z} &= \registers_{7, 8} \\
+                                \using h &= \begin{cases}
+                                  \memory\subrange{o}{32} &\when \Nrange{o}{32} \subseteq \readable{\memory} \\
+                                  \error &\otherwise
+                                \end{cases} \\
+                                \using \mathbf{a} &= \begin{cases}
+                                  \imX_\imNself \text{ except:} &\\
+                                  \quad \left.
+                                    \begin{aligned}
+                                      \keys{\mathbf{a}_\saNrequests} &= \keys{(\imX_\imNself)_\saNrequests} \setminus \set{\tup{h, z}}\ ,\\[2pt]
+                                      \keys{\mathbf{a}_\saNpreimages} &= \keys{(\imX_\imNself)_\saNpreimages} \setminus \set{h}
+                                    \end{aligned}
+                                  \ \right\} &\when (\imX_\imNself)_\saNrequests\subb{h, z} \in \set{\sq{}, \sq{x, y}},\ y < t - \Cexpungeperiod \\
+                                  \quad \mathbf{a}_\saNrequests\subb{h, z} = \sq{x, t} &\when (\imX_\imNself)_\saNrequests\subb{h, z} = \sq{x} \\
+                                  \quad \mathbf{a}_\saNrequests\subb{h, z} = \sq{w, t} &\when (\imX_\imNself)_\saNrequests\subb{h, z} = \sq{x, y, w},\ y < t - \Cexpungeperiod \\
+                                  \error &\otherwise\\
+                                \end{cases} \\
+                                \tup{\execst', \registers'_7, \imX'_\imNself} &\equiv \begin{cases}
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNself} &\when z \not \in \bloblength \\
+                                  \tup{\panic, \registers_7, \imX_\imNself} &\otherwhen h = \error \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNself} &\otherwhen \mathbf{a} = \error \\
+                                  \tup{\blacktriangleright, \mathtt{OK}, \mathbf{a}} &\otherwise \\
+                                \end{cases} \\
+                                g &\equiv \CgasF
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `yield` = 26              $\begin{aligned}
+                                \using o &= \registers_7 \\
+                                \using h &= \begin{cases}
+                                  \memory\subrange{o}{32} &\when \Nrange{o}{32} \subseteq \readable{\memory} \\
+                                  \error &\otherwise
+                                \end{cases} \\
+                                \tup{\execst', \registers'_7, \imX'_\imNyield} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, \imX_\imNyield} &\when h = \error \\
+                                  \tup{\blacktriangleright, \mathtt{OK}, h} &\otherwise \\
+                                \end{cases} \\
+                                g &\equiv \CgasTaurus
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `provide` = 27            $\begin{aligned}
+                                \using \sq{o, z} &= \registers_{8, 9} \\
+                                \using \mathbf{d} &= (\imX_\imNstate)_\psNaccounts\\
+                                \using s &= \begin{cases}
+                                  \imX_\imNid &\when \registers_7 = 2^{64} - 1 \\
+                                  \registers_7 &\otherwise
+                                \end{cases} \\
+                                \using \mathbf{i} &= \begin{cases}
+                                  \memory\subrange{o}{z} &\when \Nrange{o}{z} \subseteq \readable{\memory} \\
+                                  \error &\otherwise
+                                \end{cases} \\
+                                \using \mathbf{a} &= \begin{cases}
+                                  \mathbf{d}[s] &\when s \in \keys{\mathbf{d}} \\
+                                  \none &\otherwise
+                                \end{cases} \\
+                                \tup{\execst', \registers'_7, \imX'_\imNprovisions} &\equiv \begin{cases}
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNprovisions} &\when z \not \in \bloblength \\
+                                  \tup{\panic, \registers_7, \imX_\imNprovisions} &\otherwhen \mathbf{i} = \error \\
+                                  \tup{\blacktriangleright, \mathtt{WHO}, \imX_\imNprovisions} &\otherwhen \mathbf{a} = \none \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNprovisions} &\otherwhen \mathbf{a}_\saNrequests[\tup{\blake{\mathbf{i}}, z}] \ne \sq{} \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNprovisions} &\otherwhen \tup{s, \mathbf{i}} \in \imX_\imNprovisions \\
+                                  \tup{\blacktriangleright, \mathtt{OK}, \imX_\imNprovisions \cup \set{\tup{s, \mathbf{i}}}} &\otherwise \\
+                                \end{cases} \\
+                                g &\equiv \CgasAriesconst + \fnmemgas(\CgasArieslinear, z)
+                              \end{aligned}$
+  ------------------------- --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # C Serialization Codec {#sec:serialization}
 
@@ -5551,10 +5525,6 @@ $\mathbb{Z}$
 
 :   The set of integers. Subscript denotes range. See section [3.4](#sec:numbers){reference-type="ref" reference="sec:numbers"}.
 
-    $\signedgas$
-
-    :   The set of signed gas values. Equivalent to $\mathbb{Z}_{-2^{63}\dots2^{63}}$. See equation [\[eq:gasregentry\]](#eq:gasregentry){reference-type="ref" reference="eq:gasregentry"}.
-
 ### I.1.2 Custom Notation {#custom-notation}
 
 $\dictionary{K}{V}$
@@ -6251,7 +6221,7 @@ $\Ccorecount = 341$
 
 $\Cexpungeperiod = 19,200$
 
-:   The period in timeslots after which an unreferenced preimage may be expunged. See `eject` definition in section [25.7](#sec:accumulatefunctions){reference-type="ref" reference="sec:accumulatefunctions"}.
+:   The period in timeslots after which an unreferenced preimage may be expunged. See `eject` definition in section [25.5.3](#sec:accumulatefunctions){reference-type="ref" reference="sec:accumulatefunctions"}.
 
 $\Cepochlen = 600$
 
@@ -6605,7 +6575,7 @@ $\CgasYc{15} = 355, \CgasYl{15} = 344$
 
 :   $\Omega_Y$ (`fetch`) case 15: any accumulate item.
 
-$\CgasYc{\none} = 80, \CgasYl{\none} = 0$
+$\CgasYunknown = 80$
 
 :   $\Omega_Y$ (`fetch`) otherwise: nothing.
 
