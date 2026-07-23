@@ -4,7 +4,7 @@ subtitle: "A Mostly-Coherent Trustless Supercomputer"
 author: "Dr. Gavin Wood"
 version: "0.8.0"
 date: "unknown"
-hash: "b76e637c0901f1beb6fc7a63f4e64f8707b94baf"
+hash: "8ab35421ccd8d1723a6c4686e24cfb3db91bff07"
 ---
 
 We present a comprehensive and formal definition of JAM, a protocol combining elements of both *Polkadot* and *Ethereum*. In a single coherent model, JAM provides a global singleton permissionless object environment---much like the smart-contract environment pioneered by Ethereum---paired with secure sideband computation parallelized over a scalable node network, a proposition pioneered by Polkadot.
@@ -1207,17 +1207,17 @@ A work-report guarantee, of the set $\guarantee$, consists of a work-report toge
 
 ### 11.1.1 Work Report {#sec:workreport}
 
-A work-report, of the set $\workreport$, is defined as a tuple of the work-package specification, $\wrNavspec$; the refinement context, $\wrNcontext$; the core-index (i.e. on which the work is done), $\wrNcore$; as well as the authorizer hash $\wrNauthorizer$ and trace $\wrNauthtrace$; a segment-root lookup dictionary $\wrNsrlookup$; the gas consumed during the Is-Authorized invocation, $\wrNauthgasused$; and finally the work-digests $\wrNdigests$ which comprise the results of the evaluation of each of the items in the package together with some associated data. Formally: $$\label{eq:workreport}
+A work-report, of the set $\workreport$, is defined as a tuple of the work-package specification, $\wrNavspec$; the refinement context, $\wrNcontext$; the core-index (i.e. on which the work is done), $\wrNcore$; as well as the authorizer hash $\wrNauthorizer$; the gas consumed during the Is-Authorized invocation, $\wrNauthgasused$; the trace $\wrNauthtrace$; a segment-root lookup dictionary $\wrNsrlookup$; and finally the work-digests $\wrNdigests$ which comprise the results of the evaluation of each of the items in the package together with some associated data. Formally: $$\label{eq:workreport}
   \workreport \equiv \tuple{
     \begin{aligned}
       &\isa{\wrNavspec}{\avspec},\
       \isa{\wrNcontext}{\workcontext},\
       \isa{\wrNcore}{\coreindex},\
       \isa{\wrNauthorizer}{\hash},\
-      \isa{\wrNauthtrace}{\blob},\\
-      &\isa{\wrNsrlookup}{\dictionary{\hash}{\hash}},\
-      \isa{\wrNdigests}{\sequence[1:\Cmaxpackageitems]{\workdigest}},\
-      \isa{\wrNauthgasused}{\gas}
+      \isa{\wrNauthgasused}{\gas},\\
+      &\isa{\wrNauthtrace}{\blob},\
+      \isa{\wrNsrlookup}{\dictionary{\hash}{\hash}},\
+      \isa{\wrNdigests}{\sequence[1:\Cmaxpackageitems]{\workdigest}}
     \end{aligned}
   }$$
 
@@ -2213,7 +2213,7 @@ We now come to the work-report computation function $\computereport$. This forms
       \error &\when E \\
       \tup{\begin{aligned}
         &\wrNavspec, \is{\wrNcontext}{\wpX_\wpNcontext}, \Ncore, \\
-        &\is{\wrNauthorizer}{\wpX_\wpNauthorizer}, \wrNauthtrace, \wrNsrlookup, \wrNdigests, \wrNauthgasused
+        &\is{\wrNauthorizer}{\wpX_\wpNauthorizer}, \wrNauthgasused, \wrNauthtrace, \wrNsrlookup, \wrNdigests
       \end{aligned}} &\otherwise
     \end{cases}
   }$$
@@ -2453,7 +2453,7 @@ We can thus define $\mathbf{a}\sub{n}$ beyond the initial tranche through a new 
   \nonumber\forall n > 0:&\\
   \label{eq:latertranches}
   \ s\sub{n}(\wrX) &\in \bssignature{\activeset\subb{v}_\vkNbs}{\Xaudit \concat \banderout{\H_\Nvrfsig}\concat\blake{\wrX}\append n}{\sq{}} \\
-  \ a_n(\wrX) &\equiv \textstyle\frac{\len{\activeset}}{256\Cauditbiasfactor}\banderout{s\sub{n}(\wrX)}\sub{0} < \len{A_{n - 1}(\wrX) \setminus J_\top(\wrX)} \\
+  \ a_n(\wrX) &\equiv \textstyle\frac{\len{\activeset}}{65536\Cauditbiasfactor}\decode[2]{\banderout{s\sub{n}(\wrX)}\subrange{0}{2}} < \len{A_{n - 1}(\wrX) \setminus J_\top(\wrX)} \\
   \ \mathbf{a}\sub{n} &\equiv \set{\build{\wrX}{\wrX \in \mathbf{q}, \wrX \ne \none, a_n(\wrX)}}\end{aligned}$$
 
 We define our bias factor $\Cauditbiasfactor = 2$, which is the expected number of validators which will be required to issue a judgment for a work-report given a single no-show in the tranche before. Modeling by [@cryptoeprint:2024/961] shows that this is optimal.
@@ -3350,9 +3350,9 @@ An extended version of the [pvm]{.smallcaps} invocation which is able to progres
     &\Psi_H(\pvmNblob, \imath, \gascounter, \registers, {\memory}, f, \context) \equiv \Psi_H^*(\pvmNblob, \imath, \gascounter, \bot, \registers, {\memory}, f, \context)\\
     &\contextmutator{X} \equiv \tuple{\N, \gas, \sequence[13]{\pvmreg}, \ram, X} \to \tuple{\set{\blacktriangleright, \panic, \oog}, \gas, \sequence[13]{\pvmreg}, \ram, X}\end{aligned}$$
 
-As with $\Phi$, on exit the instruction counter references the instruction *which caused the exit* and the machine state is that prior to this instruction. Should the machine be invoked again using this instruction counter and code, then the same instruction which caused the exit would be executed on the proper (prior) machine state.
+As with $\Psi$, on exit the instruction counter references the instruction *which caused the exit* and the machine state is that prior to this instruction. Should the machine be invoked again using this instruction counter and code, then the same instruction which caused the exit would be executed on the proper (prior) machine state.
 
-With $\Phi_H$, host-calls (i.e. instructions) are in effect handled internally with the state-mutator function provided as an argument, preventing the possibility of the result being a host-call fault. Note that in the case of a successful host-call transition, we must provide the new instruction counter value $\imath''$ explicitly alongside the fresh posterior state for said instruction.
+With $\Psi_H$, host-calls (i.e. instructions) are in effect handled internally with the state-mutator function provided as an argument, preventing the possibility of the result being a host-call fault. Note that in the case of a successful host-call transition, we must provide the new instruction counter value $\imath''$ explicitly alongside the fresh posterior state for said instruction.
 
 ## A.7 Standard Program Initialization {#sec:standardprograminit}
 
