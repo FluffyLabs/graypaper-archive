@@ -4,7 +4,7 @@ subtitle: "A Mostly-Coherent Trustless Supercomputer"
 author: "Dr. Gavin Wood"
 version: "0.8.0"
 date: "unknown"
-hash: "75b72732068c187f3654b57821e80315d74405d4"
+hash: "f01d06d5ca6aa10a4a123e185f57f18df908eb12"
 ---
 
 We present a comprehensive and formal definition of JAM, a protocol combining elements of both *Polkadot* and *Ethereum*. In a single coherent model, JAM provides a global singleton permissionless object environment---much like the smart-contract environment pioneered by Ethereum---paired with secure sideband computation parallelized over a scalable node network, a proposition pioneered by Polkadot.
@@ -912,17 +912,20 @@ Service accounts are held in state under $\accounts$, a partial mapping from a s
   \serviceid &\equiv \Nbits{32} \\
   \accounts &\in \dictionary{\serviceid}{\serviceaccount}\end{aligned}$$
 
-The service account is defined as the tuple of storage dictionary $\saNstorage$, preimage lookup dictionaries $\saNpreimages$ and $\saNrequests$, code hash $\saNcodehash$, balance $\saNbalance$ and gratis storage offset $\saNgratis$, as well as the two code gas limits $\saNminaccgas$ & $\saNminmemogas$. We also record certain usage characteristics concerning the account: the time slot at creation $\saNcreated$, the time slot at the most recent accumulation $\saNlastacc$ and the parent service $\saNparent$. Formally: $$\begin{aligned}
+The service account is defined as the tuple of storage dictionary $\saNstorage$, preimage lookup dictionaries $\saNpreimages$ and $\saNrequests$, code hash $\saNcodehash$, balance $\saNbalance$ and gratis storage offset $\saNgratis$, supervisor $\saNsupervisor$ and its creation slot $\saNsupervisorcreated$ and protected balance $\saNsupervisorbalance$, as well as the two code gas limits $\saNminaccgas$ & $\saNminmemogas$. We also record certain usage characteristics concerning the account: the time slot at creation $\saNcreated$, the time slot at the most recent accumulation $\saNlastacc$ and the parent service $\saNparent$. Formally: $$\begin{aligned}
 \label{eq:serviceaccount}
   \serviceaccount \equiv \tuple{\ \begin{aligned}
     \saNstorage &\in \dictionary{\blob}{\blob}\,,\
     \saNpreimages \in \dictionary{\hash}{\blob}\,,\\
-    \saNrequests &\in \dictionary{\tuple{\hash,\bloblength}}{\sequence[:3]{\timeslot}}\,,\\
-    \saNgratis &\in \balance\,,\
-    \saNcodehash \in \hash\,,\
-    \saNbalance \in \balance\,,\
-    \saNminaccgas \in \gas\,,\\
-    \saNminmemogas &\in \gas\,,\
+    \saNrequests &\in \dictionary{\tuple{\hash,\bloblength}}{\sequence[:3]{\timeslot}}\,,\
+    \saNgratis \in \balance\,,\
+    \saNcodehash \in \hash\,,\\
+    \saNbalance &\in \balance\,,\
+    \saNsupervisor \in \serviceid\,,\
+    \saNsupervisorcreated \in \timeslot\,,\
+    \saNsupervisorbalance \in \balance\,,\\
+    \saNminaccgas &\in \gas\,,\
+    \saNminmemogas \in \gas\,,\
     \saNcreated \in \timeslot\,,\
     \saNlastacc \in \timeslot\,,\
     \saNparent \in \serviceid\\
@@ -1050,6 +1053,25 @@ Finally, $\alwaysaccers$ is a small dictionary containing the indices of service
   \registrar \in \serviceid \\
   \assigners &\in \sequence[\Ccorecount]{\serviceid} \ ,\qquad
   \alwaysaccers \in \dictionary{\serviceid}{\gas}\end{aligned}$$
+
+## 9.5 Supervisors
+
+Each service has a designated *supervisor* $\saNsupervisor$; all non-privileged mutating operations are permitted to be done on a service by its supervisor. Only the supervisor may designate a new supervisor (using the `supervisor` host-call). A service's supervisor may be itself.
+
+In addition to the regular balance of a service $\saNbalance$, there is an additional supervisor balance $\saNsupervisorbalance$. This balance is aggregated with the regular balance when determining data footprint limits for the service, but may only be transferred by the supervisor.
+
+Alongside a service's supervisor $\saNsupervisor$, we record the time slot in which the supervisor was created $\saNsupervisorcreated$. We define the *effective supervisor* of a service to be the designated supervisor $\saNsupervisor$ if this service exists and has the expected creation slot, or the service itself otherwise. The purpose of the creation slot check is to prevent unintentional transfer of power in the case that the supervisor is ejected and a new service is created with the same identifier: the new service will *not* be considered the supervisor despite having the correct identifier, as it will have a newer creation slot. For convenience, given a service accounts dictionary $\mathbf{d}$ and a service identifier $s$, we express the effective supervisor of $s$ as $\effectivesupervisor{\mathbf{d}}{s}$. Formally: $$\label{eq:effectivesupervisor}
+  \begin{aligned}
+    &\forall \mathbf{d} \in \dictionary{\serviceid}{\serviceaccount}, s \in \keys{\mathbf{d}} : \\
+    &\quad\begin{aligned}
+      \effectivesupervisor{\mathbf{d}}{s} &\equiv \begin{cases}
+        u &\when u \in \keys{\mathbf{d}} \land \mathbf{d}\subb{u}_\saNcreated = d \\
+        s &\otherwise
+      \end{cases} \\
+      &\phantom{{}\equiv{}} \where u = \mathbf{d}\subb{s}_\saNsupervisor \\
+      &\phantom{{}\equiv{}} \also d = \mathbf{d}\subb{s}_\saNsupervisorcreated
+    \end{aligned}
+  \end{aligned}$$
 
 # 10 Disputes, Verdicts and Judgments {#sec:disputes}
 
@@ -1580,10 +1602,10 @@ Secondly, since [pvm]{.smallcaps} setup cannot be expected to be zero-cost, we w
 
 We resolve this by defining a function $\accseq$ which accumulates work-reports sequentially, and which itself utilizes a function $\accpar$ which accumulates work-reports in a non-sequential, service-aggregated manner. In all but the first invocation of $\accseq$, we also integrate the effects of any *deferred-transfers* implied by the previous round of accumulation, thus the accumulation function must accept both the information contained in work-digests and that of deferred-transfers.
 
-Rather than passing whole work-digests into accumulate, we extract the salient information from them and combine with information implied by their work-reports. We call this kind of combined value an *operand tuple*, $\operandtuple$. Likewise, we denote the set characterizing a *deferred transfer* as $\defxfer$, noting that a transfer includes a memo component $\dxNmemo$ of $\Cmemosize = 128$ octets, together with the service index of the sender $\dxNsource$, the service index of the receiver $\dxNdest$, the balance to be transferred $\dxNamount$ and the gas limit $\dxNgas$ for the transfer. Formally: $$\begin{aligned}
+Rather than passing whole work-digests into accumulate, we extract the salient information from them and combine with information implied by their work-reports. We call this kind of combined value an *operand tuple*, $\operandtuple$. Likewise, we denote the set characterizing a *deferred transfer* as $\defxfer$, noting that a transfer includes a memo component $\dxNmemo$ of $\Cmemosize = 128$ octets, together with the service index of the sender $\dxNsource$, the service index of the receiver $\dxNdest$, whether to credit the receiver's regular balance ($\dxNdestsupervisor = \bot$) or its supervisor balance ($\dxNdestsupervisor = \top$), the balance to be transferred $\dxNamount$ and the gas limit $\dxNgas$ for the transfer. Formally: $$\begin{aligned}
   \label{eq:operandtuple}
   \operandtuple &\equiv \tuple{
-    \begin{alignedat}{5}
+    \begin{alignedat}{3}
       \isa{\otNpackagehash&}{\hash},\;
       \isa{&\otNsegroot&}{\hash},\;
       \isa{&\otNauthorizer&}{\hash},\;
@@ -1595,14 +1617,17 @@ Rather than passing whole work-digests into accumulate, we extract the salient i
   }\\
   \label{eq:defxfer}
   \defxfer &\equiv \tuple{
-    \isa{\dxNsource}{\serviceid} ,
-    \isa{\dxNdest}{\serviceid} ,
-    \isa{\dxNamount}{\balance} ,
-    \isa{\dxNmemo}{\memo} ,
-    \isa{\dxNgas}{\gas}
+    \begin{alignedat}{3}
+      \isa{\dxNsource&}{\serviceid},\;
+      \isa{&\dxNdest&}{\serviceid},\;
+      \isa{&\dxNdestsupervisor&}{\bool},\;\\
+      \isa{\dxNamount&}{\balance},\;
+      \isa{&\dxNmemo&}{\memo},\;
+      \isa{&\dxNgas&}{\gas}
+    \end{alignedat}
   }\end{aligned}$$
 
-Note that the union of the two characterizes inputs to the Accumulation invocation function $\Psi_A$ (defined in equation [\[eq:accinvocation\]](#eq:accinvocation){reference-type="ref" reference="eq:accinvocation"}).
+The union of the two $\operandtuple \cup \defxfer$ characterizes inputs to the Accumulation invocation function $\Psi_A$ (defined in equation [\[eq:accinvocation\]](#eq:accinvocation){reference-type="ref" reference="eq:accinvocation"}).
 
 Our formalisms continue by defining $\partialstate$ as a characterization of (i.e. values capable of representing) state components which are both needed and mutable by the accumulation process. This comprises the service accounts state (as in $\accountspre$), the upcoming validator keys $\stagingset$, the queue of authorizers $\authqueue$ and the privileges state $\privileges$. Formally: $$\label{eq:partialstate}
   \partialstate \equiv \tuple{\begin{aligned}
@@ -1619,24 +1644,50 @@ Our formalisms continue by defining $\partialstate$ as a characterization of (i.
 Finally, we define $B$ and $U$, the sets characterizing service-indexed commitments to accumulation output and service-indexed gas usage respectively: $$B\equiv \protoset{\tuple{\serviceid, \hash}} \qquad
   U\equiv \sequence{\tuple{\serviceid, \gas}}$$
 
+It is possible for a service's state to be modified by both the service's Accumulate logic and its supervisor's Accumulate logic. We wish to avoid inconsistent state resulting from concurrent modification while not unnecessarily restricting parallel accumulation. To this end, we optimistically permit execution of a service's Accumulate logic and its supervisor's Accumulate logic in the same round, but discard all results[^13] of the service's execution if both modify the service's state. Note that ejection of a service is considered a modification of its state.
+
+As the result of accumulating a transfer cannot reasonably be discarded (this would cause funds to be lost), deferred transfers to a service are *never* accumulated in parallel with execution of the Accumulate logic of the supervisor. We define the function $T$ which partitions a sequence of deferred transfers into those which may be accumulated in parallel with the Accumulate logic of the services $\mathbf{s}$ and those which must be accumulated in a later round. $$\begin{gathered}
+    T(\mathbf{t}, \mathbf{s}, \mathbf{d}) \equiv T^*(\mathbf{t}, \mathbf{s}, \emptyset, \mathbf{d}) \\
+    T^*\colon\abracegroup{
+      &\tuple{\sequence{\defxfer}, \protoset{\serviceid}, \protoset{\serviceid}, \dictionary{\serviceid}{\serviceaccount}} \to \tuple{\sequence{\defxfer}, \sequence{\defxfer}} \\
+      &\tup{\sq{}, \mathbf{s}, \mathbf{i}, \mathbf{d}} \mapsto \tup{\sq{}, \sq{}} \\
+      &\tup{\sq{t} \concat \mathbf{t}, \mathbf{s}, \mathbf{i}, \mathbf{d}} \mapsto \begin{cases}
+        \tup{\mathbf{t}^!, \sq{t} \concat \mathbf{t}^Q} &\when q = \top \\
+        \tup{\sq{t} \concat \mathbf{t}^!, \mathbf{t}^Q} &\otherwise
+      \end{cases} \\
+      &\quad\where q = (t_\dxNdest \in \keys{\mathbf{d}} \land \effectivesupervisor{\mathbf{d}}{t_\dxNdest} \in (\mathbf{s} \cup \mathbf{i}) \setminus \set{t_\dxNdest}) \lor {} \\
+      &\quad\phantom{\where q = {}} \exists s \in \mathbf{i} \setminus \set{t_\dxNdest} : \effectivesupervisor{\mathbf{d}}{s} = t_\dxNdest \\
+      &\quad\also \mathbf{i}' = \begin{cases}
+        \mathbf{i} &\when q = \top \lor t_\dxNdest \not\in \keys{\mathbf{d}} \\
+        \mathbf{i} \cup \set{t_\dxNdest} &\otherwise
+      \end{cases} \\
+      &\quad\also \tup{\mathbf{t}^!, \mathbf{t}^Q} = T^*(\mathbf{t}, \mathbf{s}, \mathbf{i}', \mathbf{d})
+    }
+  \end{gathered}$$
+
+Note that a deferred transfer may still be discarded, and the funds effectively burnt, if by the point of its accumulation the destination service has been ejected. See the definition of $\Psi_A$ in equation [\[eq:accinvocation\]](#eq:accinvocation){reference-type="ref" reference="eq:accinvocation"}.
+
 We define the outer accumulation function $\accseq$ which transforms a gas-limit, a sequence of deferred transfers, a sequence of work-reports, an initial partial-state and a dictionary of services enjoying free accumulation, into a tuple of the number of work-reports accumulated, a posterior state-context, the resultant accumulation-output pairings, the service-indexed gas usage and the sequence of processed transfers: $$\label{eq:accseq}
   \accseq\colon\abracegroup{
     &\tuple{\gas, \defxfers, \workreports, \partialstate, \dictionary{\serviceid}{\gas}} \to \tuple{\N, \partialstate, B, U, \defxfers} \\
     &\tup{g, \mathbf{t}, \mathbf{r}, \psX, \mathbf{f}} \!\mapsto\! \begin{cases}
       \tup{0, \psX, \emset, \sq{}, \sq{}} &
         \when n = 0 \\
-      \tup{i + j, \psX', \mathbf{b}^* \!\cup \mathbf{b}, \mathbf{u}^* \!\!\concat \mathbf{u}, \mathbf{t} \concat \mathbf{t}^\dagger}\!\!\!\! &
+      \tup{i + j, \psX', \mathbf{b}^* \!\cup \mathbf{b}, \mathbf{u}^* \!\!\concat \mathbf{u}, \mathbf{t}^!\! \concat \mathbf{t}^\dagger}\!\!\!\! &
         \text{o/w}\!\!\!\!\!\!\!\! \\
     \end{cases} \\
     &\quad\where i = \max(\Nmax{\len{\mathbf{r}} + 1}): \\
     &\qquad \sum_{r \in \mathbf{r}\sub{\dots i}, d \in r_\wrNdigests}\!\!\!\!\!\!\!\!(d_\wdNgaslimit) + \sum_{t \in \mathbf{t}}(t_\dxNgas) + \!\!\!\!\sum_{x \in \values{\mathbf{f}}}\!\!\!\!(x) \le g \\
-    &\quad\also n = i + \len{\mathbf{t}} + \len{\mathbf{f}} \\
-    &\quad\also \tup{\psX^*\!\!, \mathbf{t}^*\!\!, \mathbf{b}^*\!\!, \mathbf{u}^*} = \accpar(\psX, \mathbf{t},\mathbf{r}\sub{\dots i}, \mathbf{f}) \\
-    &\quad\also \tup{j, \psX'\!, \mathbf{b}, \mathbf{u}, \mathbf{t}^\dagger} = \accseq(g^*, \mathbf{t}^*\!\!, \mathbf{r}\sub{i\dots}, \psX^*\!\!, \emset)\\
+    &\quad\also \mathbf{s} = \set{\build{d_\wdNserviceindex}{r \in \mathbf{r}\sub{\dots i}, d \in r_\wrNdigests}} \cup \keys{\mathbf{f}} \\
+    &\quad\also \tup{\mathbf{t}^!, \mathbf{t}^Q} = T(\mathbf{t}, \mathbf{s}, \psX_\psNaccounts) \\
+    &\quad\also n = i + \len{\mathbf{t}^!} + \len{\mathbf{f}} \\
+    &\quad\also \tup{\psX^*\!\!, \mathbf{t}^*\!\!, \mathbf{b}^*\!\!, \mathbf{u}^*} = \accpar(\psX, \mathbf{t}^!,\mathbf{r}\sub{\dots i}, \mathbf{f}) \\
+    &\quad\also \tup{j, \psX'\!, \mathbf{b}, \mathbf{u}, \mathbf{t}^\dagger} = \accseq(g^*, \mathbf{t}^Q\! \concat \mathbf{t}^*\!\!, \mathbf{r}\sub{i\dots}, \psX^*\!\!, \emset)\\
     &\quad\also g^* = g + \sum_{t \in \mathbf{t^*}}(t_\dxNgas) - \!\!\!\!\!\!\sum_{\tup{s, u} \in \mathbf{u}^*}\!\!\!\!\!\!(u)
   }$$
 
-We come to define the parallelized accumulation function $\accpar$ which, with the help of the single-service accumulation function $\accone$, transforms an initial state-context, together with a sequence of deferred transfers, a sequence of work-reports and a dictionary of privileged always-accumulate services, into a tuple of the posterior state-context, the resultant deferred-transfers and accumulation-output pairings, and the service-indexed gas usage. Note that for the privileges we employ a function $R$ which selects the service to which the manager service changed, or if no change was made, then that which the service itself changed to. This allows privileges to be 'owned' and facilitates the removal of the manager service which we see as a helpful possibility. Formally: $$\label{eq:accpar}
+We come to define the parallelized accumulation function $\accpar$ which, with the help of the single-service accumulation function $\accone$, transforms an initial state-context, together with a sequence of deferred transfers, a sequence of work-reports and a dictionary of privileged always-accumulate services, into a tuple of the posterior state-context, the resultant deferred-transfers and accumulation-output pairings, and the service-indexed gas usage. Note that for the privileges we employ a function $R$ which selects the service to which the manager service changed, or if no change was made, then that which the service itself changed to. This allows privileges to be 'owned' and facilitates the removal of the manager service which we see as a helpful possibility. Formally: $$\begin{gathered}
+  \label{eq:accpar}
   \accpar\colon\abracegroup[\;]{\begin{aligned}
     &\tuple{\partialstate, \defxfers, \workreports, \dictionary{\serviceid}{\gas}} \to \tuple{\partialstate, \defxfers, B, U} \\
     &\tup{\psX, \mathbf{t}, \mathbf{r}, \mathbf{f}} \mapsto \tup{
@@ -1646,12 +1697,28 @@ We come to define the parallelized accumulation function $\accpar$ which, with t
     }\!\!\!\!\!\!\\
     &\text{where:}\\
     &\ \begin{aligned}
-      \using \mathbf{s} &= \set{\build{
+      \using &\tup{
+        \psNaccounts, \psNstagingset, \psNauthqueue, \psNmanager, \psNassigners, \psNdelegator, \psNregistrar, \psNalwaysaccers
+      } = \psX \\
+      \mathbf{s} &= \set{\build{
         d_\wdNserviceindex
         }{
           r \in \mathbf{r}, d \in r_\wrNdigests
         }} \cup \keys{\mathbf{f}} \cup \set{\build{t_\dxNdest}{t \in \mathbf{t}}} \\
-      \accumulate(s) &\equiv \accone(\psX, \mathbf{t}, \mathbf{r}, \mathbf{f}, s) \\
+      N(\mathbf{o}) \in \acconeout &\equiv \tup{
+        \aoNpoststate,
+        \is{\aoNmodifiedaccounts}{\emset},
+        \is{\aoNdefxfers}{\sq{}},
+        \is{\aoNyield}{\none},
+        \is{\aoNgasused}{\mathbf{o}_\aoNgasused},
+        \is{\aoNprovisions}{\mathbf{o}_\aoNprovisions}
+      } \\
+      \accumulate(s) &\equiv \begin{cases}
+        N(\mathbf{o}) &\when s \in \mathbf{o}_\aoNmodifiedaccounts \land s \in \mathbf{y}_\aoNmodifiedaccounts \setminus \set{\effectivesupervisor{\psNaccounts}{s}} \\
+        \mathbf{o} &\otherwise
+      \end{cases} \\
+      &\phantom{{}\equiv{}} \where \mathbf{o} = \accone(\psX, \mathbf{t}, \mathbf{r}, \mathbf{f}, s) \\
+      &\phantom{{}\equiv{}} \also \mathbf{y} = \accone(\psX, \mathbf{t}, \mathbf{r}, \mathbf{f}, \effectivesupervisor{\psNaccounts}{s}) \\
       \mathbf{u} &= \sq{\build{
           \tup{s, \accumulate(s)_\aoNgasused}
         }{
@@ -1670,12 +1737,9 @@ We come to define the parallelized accumulation function $\accpar$ which, with t
           s \orderedin \mathbf{s}
         }} \\
       \psNaccounts' &= I(
-        (\psNaccounts \cup \mathbf{n}) \setminus \mathbf{m},
+        \mathbf{m} \cup \mathbf{n},
         \bigcup_{s \in \mathbf{s}} \accumulate(s)_\aoNprovisions
       ) \\
-      &\tup{
-        \psNaccounts, \psNstagingset, \psNauthqueue, \psNmanager, \psNassigners, \psNdelegator, \psNregistrar, \psNalwaysaccers
-      } = \psX \\
       \mathbf{e}^*&= \accumulate(m)_\aoNpoststate \\
       \tup{\psNmanager'\!,\psNalwaysaccers'} &=
         \mathbf{e}^*_{\tup{\psNmanager, \psNalwaysaccers}} \\
@@ -1702,23 +1766,24 @@ We come to define the parallelized accumulation function $\accpar$ which, with t
         \psNauthqueue'\sub{c} &= ((
           \accumulate(\psNassigners\sub{c})_\aoNpoststate
         )_\psNauthqueue)\sub{c} \\
+      M(s) &\equiv \begin{cases}
+        (\accumulate(s)_\aoNpoststate)_\psNaccounts\subb{s} &\when s \in \accumulate(s)_\aoNmodifiedaccounts \\
+        (\accumulate(\effectivesupervisor{\psNaccounts}{s})_\aoNpoststate)_\psNaccounts\subb{s} &\otherwise
+      \end{cases} \\
+      \mathbf{m} &= \set{\build{\kv{s}{M(s)}}{s \in \keys{\psNaccounts}, M(s) \ne \none}} \\
       \mathbf{n} &= \bigcup_{s \in \mathbf{s}}(
         (\accumulate(s)_\aoNpoststate)_\psNaccounts
           \setminus
-        \keys{\psNaccounts \setminus \set{s}}
-      ) \\
-      \mathbf{m} &= \bigcup_{s \in \mathbf{s}}(
         \keys{\psNaccounts}
-          \setminus
-        \keys{(\accumulate(s)_\aoNpoststate)_\psNaccounts}
       )
     \end{aligned}
-  \end{aligned}}$$ $$R(o, a, b) \equiv \begin{cases}
+  \end{aligned}} \\
+  R(o, a, b) \equiv \begin{cases}
     b &\when a = o \\
     a &\otherwise
-  \end{cases}$$
+  \end{cases}\end{gathered}$$
 
-And $I$ is the preimage integration function, which transforms a dictionary of service states and a set of service/blob pairs into a new dictionary of service states. Preimage provisions into services which no longer exist or whose relevant request is dropped are disregarded: $$\begin{aligned}
+$I$ is the preimage integration function, which transforms a dictionary of service states and a set of service/blob pairs into a new dictionary of service states. Preimage provisions into services which no longer exist or whose relevant request is dropped are disregarded: $$\begin{aligned}
   I&\colon\abracegroup{
     &\tuple{\dictionary{\serviceid}{\serviceaccount}, \protoset{\tuple{\serviceid, \blob}}} \to \dictionary{\serviceid}{\serviceaccount} \\
     &\tup{\mathbf{d}, \mathbf{p}} \mapsto \mathbf{d}'\;\where \mathbf{d}' = \mathbf{d}\;\text{except:} \\
@@ -1735,15 +1800,16 @@ And $I$ is the preimage integration function, which transforms a dictionary of s
     \end{cases}
   }\end{aligned}$$
 
-We note that while forming the union of all altered, newly added service and newly removed indices, defined in the above context as $\keys{\mathbf{n}} \cup \mathbf{m}$, different services may not each contribute the same index for a new, altered or removed service. This cannot happen for the set of removed and altered services since the code hash of removable services has no known preimage and thus cannot execute itself to make an alteration. For new services this should also never happen since new indices are explicitly selected to avoid such conflicts. In the unlikely event it does happen, the block must be considered invalid.
+We note that while forming the union of newly added services, defined in the above context as $\mathbf{n}$, different services may not each contribute the same index for a new service. New indices are explicitly selected to avoid such conflicts. In the unlikely event of a conflict, the block must be considered invalid.
 
-The single-service accumulation function, $\accone$, transforms an initial state-context, a sequence of deferred-transfers, a sequence of work-reports, a dictionary of services enjoying free accumulation (with the values indicating the amount of free gas) and a service index into an alterations state-context, a sequence of *transfers*, a possible accumulation-output, the actual [pvm]{.smallcaps} gas used and a set of preimage provisions. This function wrangles the work-digests of a particular service from a set of work-reports and invokes [pvm]{.smallcaps} execution with said data: $$\label{eq:acconeout}
+The single-service accumulation function, $\accone$, transforms an initial state-context, a sequence of deferred-transfers, a sequence of work-reports, a dictionary of services enjoying free accumulation (with the values indicating the amount of free gas) and a service index into an alterations state-context, a set identifying the modified services, a sequence of *transfers*, a possible accumulation-output, the actual [pvm]{.smallcaps} gas used and a set of preimage provisions. This function wrangles the work-digests of a particular service from a set of work-reports and invokes [pvm]{.smallcaps} execution with said data: $$\label{eq:acconeout}
   \acconeout \equiv \tuple{
     \begin{alignedat}{3}
       \isa{\aoNpoststate&}{\partialstate},\;
-      \isa{&\aoNdefxfers&}{\defxfers},\;
-      \isa{\aoNyield}{\optional{\hash}},\;\\
-      \isa{\aoNgasused&}{\gas},\;
+      \isa{&\aoNmodifiedaccounts&}{\protoset{\serviceid}},\;
+      \isa{&\aoNdefxfers&}{\defxfers},\; \\
+      \isa{\aoNyield&}{\optional{\hash}},\;
+      \isa{&\aoNgasused&}{\gas},\;
       \isa{&\aoNprovisions&}{\protoset{\tuple{\serviceid, \blob}}}
     \end{alignedat}
   }$$ $$\begin{aligned}
@@ -1790,31 +1856,31 @@ This draws upon $\wdNgaslimit$, the gas limit implied by the selected deferred-t
 
 ## 12.3 Final State Integration
 
-Given the result of the top-level $\accseq$, we may define the posterior state $\privileges'$, $\authqueue'$ and $\stagingset'$ as well as the first intermediate state of the service-accounts $\accountspostacc$ and the Accumulation Output Log $\lastaccout'$: $$\begin{aligned}
+Given the result of the top-level $\accseq$, we may define the posterior state $\privileges'$, $\authqueue'$ and $\stagingset'$ as well as the first intermediate state of the service-accounts $\accountspostacc$ and the Accumulation Output Log $\lastaccout'$: $$\begin{gathered}
   \nonumber
-  &\using g = \max\left(
-    \Cblockaccgas,
-    \Creportaccgas \cdot \Ccorecount + \textstyle \sum_{x \in \values{\alwaysaccers}}(x)
-  \right)\\
-  \nonumber
-  &\also \psX = \tup{
-    \is{\psNaccounts}{\accountspre},
-    \is{\psNstagingset}{\stagingset},
-    \is{\psNauthqueue}{\authqueue},
-    \is{\psNmanager}{\manager},
-    \is{\psNassigners}{\assigners},
-    \is{\psNdelegator}{\delegator},
-    \is{\psNregistrar}{\registrar},
-    \is{\psNalwaysaccers}{\alwaysaccers}
-  }
-  \!\!\!\!\!\\
+  \begin{aligned}
+    \using g &= \max\left(
+      \Cblockaccgas,
+      \Creportaccgas \cdot \Ccorecount + \textstyle \sum_{x \in \values{\alwaysaccers}}(x)
+    \right) \\
+    \also \psX &= \tup{
+      \is{\psNaccounts}{\accountspre},
+      \is{\psNstagingset}{\stagingset},
+      \is{\psNauthqueue}{\authqueue},
+      \is{\psNmanager}{\manager},
+      \is{\psNassigners}{\assigners},
+      \is{\psNdelegator}{\delegator},
+      \is{\psNregistrar}{\registrar},
+      \is{\psNalwaysaccers}{\alwaysaccers}
+    }
+  \end{aligned} \\
   \label{eq:finalstateaccumulation}
-  &\tup{
+  \tup{
     n, \psX', \mathbf{b}, \mathbf{u}, \mathbf{t}
   } \equiv \accseq(g, \sq{}, \justbecameavailable^*, \psX, \alwaysaccers) \\
-  &\lastaccout' \equiv \sq{\tup{s, h} \in \mathbf{b}} \\
+  \lastaccout' \equiv \sq{\tup{s, h} \in \mathbf{b}} \\
   \label{eq:accountspostaccdef}
-  &\tup{
+  \tup{
     \is\psNaccounts{\accountspostacc},
     \is\psNstagingset{\stagingset'},
     \is\psNauthqueue{\authqueue'},
@@ -1824,7 +1890,7 @@ Given the result of the top-level $\accseq$, we may define the posterior state $
     \is\psNregistrar{\registrar'},
     \is\psNalwaysaccers{\alwaysaccers'}
   } \equiv \psX'
-  \!\!\!\!\!\end{aligned}$$
+  \!\!\!\!\!\end{gathered}$$
 
 From this formulation, we also receive $n$, the total number of work-reports accumulated and $\mathbf{u}$, the gas used in the accumulation process for each service. We compose $\accumulationstatistics$, our accumulation statistics, which is a mapping from the service indices which were accumulated to the amount of gas used throughout accumulation and the number of work-items and transfers accumulated. Formally: $$\begin{aligned}
   \label{eq:accumulationstatisticsspec}
@@ -1837,7 +1903,7 @@ From this formulation, we also receive $n$, the total number of work-reports acc
   }}
   \!\!\!\!\\
   \nonumber
-  \where &S(s) \equiv \tup{N(s), T(s), G(s)} \\
+  \where &S(s) \equiv \tup{N(s), X(s), G(s)} \\
   \nonumber
   \also &N(s) \equiv \len{\sq{\build{d}{
     r \orderedin \justbecameavailable^*\sub{\dots n} ,
@@ -1845,7 +1911,7 @@ From this formulation, we also receive $n$, the total number of work-reports acc
     d_\wdNserviceindex = s
   }}} \\
   \nonumber
-  \also &T(s) \equiv \len{\sq{\build{t}{
+  \also &X(s) \equiv \len{\sq{\build{t}{
     t \orderedin \mathbf{t},
     t_\dxNdest = s
   }}} \\
@@ -2639,13 +2705,13 @@ Interestingly, we expect neither model to be bottlenecked in computation, meanin
 
 The [tps]{.smallcaps} metric does not lend itself well to measuring distributed systems' computational performance, so we now turn to another slightly more compute-focussed benchmark: the [evm]{.smallcaps}. The basic *YP* Ethereum network, now approaching a decade old, is probably the best known example of general purpose decentralized computation and makes for a reasonable yardstick. It is able to sustain a computation and [i/o]{.smallcaps} rate of 1.25M gas/sec, with a peak throughput of twice that. The [evm]{.smallcaps} gas metric was designed to be a time-proportional metric for predicting and constraining program execution. Attempting to determine a concrete comparison to [pvm]{.smallcaps} throughput is non-trivial and necessarily opinionated owing to the disparity between the two platforms, including word size, endianness, stack/register architecture and memory model. However, we will attempt to determine a reasonable range of values.
 
-[Evm]{.smallcaps} gas does not directly translate into native execution as it also combines state reads and writes as well as transaction input data, implying it is able to process some combination of up to 595 storage reads, 57 storage writes and 1.25M computation-gas as well as 78[kb]{.smallcaps} input data in each second, trading one against the other.[^13] We cannot find any analysis of the typical breakdown between storage [i/o]{.smallcaps} and pure computation, so to make a very conservative estimate, we assume it does all four. In reality, we would expect it to be able to do on average of each.
+[Evm]{.smallcaps} gas does not directly translate into native execution as it also combines state reads and writes as well as transaction input data, implying it is able to process some combination of up to 595 storage reads, 57 storage writes and 1.25M computation-gas as well as 78[kb]{.smallcaps} input data in each second, trading one against the other.[^14] We cannot find any analysis of the typical breakdown between storage [i/o]{.smallcaps} and pure computation, so to make a very conservative estimate, we assume it does all four. In reality, we would expect it to be able to do on average of each.
 
-Our experiments[^14] show that on modern, high-end consumer hardware with a high-quality [evm]{.smallcaps} implementation, we can expect somewhere between 100 and 500 gas/µs in throughput on pure-compute workloads (we specifically utilized Odd-Product, Triangle-Number and several implementations of the Fibonacci calculation). To make a conservative comparison to [pvm]{.smallcaps}, we propose transpilation of the [evm]{.smallcaps} code into [pvm]{.smallcaps} code and then re-execution of it under the Polka[vm]{.smallcaps} prototype.[^15]
+Our experiments[^15] show that on modern, high-end consumer hardware with a high-quality [evm]{.smallcaps} implementation, we can expect somewhere between 100 and 500 gas/µs in throughput on pure-compute workloads (we specifically utilized Odd-Product, Triangle-Number and several implementations of the Fibonacci calculation). To make a conservative comparison to [pvm]{.smallcaps}, we propose transpilation of the [evm]{.smallcaps} code into [pvm]{.smallcaps} code and then re-execution of it under the Polka[vm]{.smallcaps} prototype.[^16]
 
-To help estimate a reasonable lower-bound of [evm]{.smallcaps} gas/µs, e.g. for workloads which are more memory and [i/o]{.smallcaps} intensive, we look toward real-world permissionless deployments of the [evm]{.smallcaps} and see that the Moonbeam network, after correcting for the slowdown of executing within the recompiled WebAssembly platform on the somewhat conservative Polkadot hardware platform, implies a throughput of around 100 gas/µs. We therefore assert that in terms of computation, 1µs approximates to around 100-500 [evm]{.smallcaps} gas on modern high-end consumer hardware.[^16]
+To help estimate a reasonable lower-bound of [evm]{.smallcaps} gas/µs, e.g. for workloads which are more memory and [i/o]{.smallcaps} intensive, we look toward real-world permissionless deployments of the [evm]{.smallcaps} and see that the Moonbeam network, after correcting for the slowdown of executing within the recompiled WebAssembly platform on the somewhat conservative Polkadot hardware platform, implies a throughput of around 100 gas/µs. We therefore assert that in terms of computation, 1µs approximates to around 100-500 [evm]{.smallcaps} gas on modern high-end consumer hardware.[^17]
 
-Benchmarking and regression tests show that the prototype [pvm]{.smallcaps} engine has a fixed preprocessing overhead of around 5ns/byte of program code and, for arithmetic-heavy tasks at least, a marginal factor of 1.6-2% compared to [evm]{.smallcaps} execution, implying an asymptotic speedup of around 50-60x. For machine code 1[mb]{.smallcaps} in size expected to take of the order of a second to compute, the compilation cost becomes only 0.5% of the overall time. [^17] For code not inherently suited to the 256-bit [evm]{.smallcaps} [isa]{.smallcaps}, we would expect substantially improved relative execution times on [pvm]{.smallcaps}, though more work must be done in order to gain confidence that these speed-ups are broadly applicable.
+Benchmarking and regression tests show that the prototype [pvm]{.smallcaps} engine has a fixed preprocessing overhead of around 5ns/byte of program code and, for arithmetic-heavy tasks at least, a marginal factor of 1.6-2% compared to [evm]{.smallcaps} execution, implying an asymptotic speedup of around 50-60x. For machine code 1[mb]{.smallcaps} in size expected to take of the order of a second to compute, the compilation cost becomes only 0.5% of the overall time. [^18] For code not inherently suited to the 256-bit [evm]{.smallcaps} [isa]{.smallcaps}, we would expect substantially improved relative execution times on [pvm]{.smallcaps}, though more work must be done in order to gain confidence that these speed-ups are broadly applicable.
 
 If we allow for preprocessing to take up to the same component within execution as the marginal cost (owing to, for example, an extremely large but short-running program) and for the [pvm]{.smallcaps} metering to imply a safety overhead of 2x to execution speeds, then we can expect a JAM core to be able to process the equivalent of around 1,500 [evm]{.smallcaps} gas/µs. Owing to the crudeness of our analysis we might reasonably predict it to be somewhere within a factor of three either way---i.e. 500-5,000 [evm]{.smallcaps} gas/µs.
 
@@ -2907,7 +2973,7 @@ Similarly, conditional jumps are valid if and only if both branches point to the
     \tup{\blacktriangleright, b} &\otherwise
   \end{cases}$$
 
-Jumps whose next instruction is dynamically computed must use an address which may be indexed into the jump-table $\mathbf{j}$. Through a quirk of tooling[^18], we define the dynamic address required by the instructions as the jump table index incremented by one and then multiplied by our jump alignment factor $\Cpvmdynaddralign = 2$.
+Jumps whose next instruction is dynamically computed must use an address which may be indexed into the jump-table $\mathbf{j}$. Through a quirk of tooling[^19], we define the dynamic address required by the instructions as the jump table index incremented by one and then multiplied by our jump alignment factor $\Cpvmdynaddralign = 2$.
 
 As with other irregular alterations to the program counter, target code index must be the start of a basic block or else a panic occurs. Formally: $$\label{eq:jumptablealignment}
   \token{djump}(a) \implies \tup{\varepsilon, \imath'} = \begin{cases}
@@ -3944,7 +4010,7 @@ Unlike the other invocation functions, the Refine invocation function implicitly
       \Omega_K(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}) &\when n = \mathtt{invoke}\\
       \Omega_X(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}) &\when n = \mathtt{expunge}\\
       \tup{\oog, 0, \registers', \memory, \tup{\mathbf{m}, \mathbf{e}}} &\otherwhen \gascounter < \Cgasunknown\\
-      \tup{\blacktriangleright, \gascounter - \Cgasunknown', \registers', \memory, \tup{\mathbf{m}, \mathbf{e}}} &\otherwise\\
+      \tup{\blacktriangleright, \gascounter - \Cgasunknown, \registers', \memory, \tup{\mathbf{m}, \mathbf{e}}} &\otherwise\\
       \multicolumn{2}{l}{\where \registers' = \registers \exc \registers'_7 = \mathtt{WHAT}} \\
       \multicolumn{2}{l}{\also \overline{\mathbf{x}} = \sq{\build{
         \sq{\build{
@@ -3966,6 +4032,7 @@ Formally, we define our result context to be $\implications$, and our invocation
   \implications &\equiv \tuple{
     \isa{\imNid}{\serviceid},
     \isa{\imNstate}{\partialstate},
+    \isa{\imNmodifiedaccounts}{\protoset{\serviceid}},
     \isa{\imNnextfreeid}{\serviceid},
     \isa{\imNxfers}{\defxfers},
     \isa{\imNyield}{\optional{\hash}},
@@ -3978,40 +4045,52 @@ We define a convenience equivalence $\imX_\imNself$ to easily denote the accumul
 
 We track both regular and exceptional dimensions within our context mutator, but collapse the result of the invocation to one or the other depending on whether the termination was regular or exceptional (i.e. out-of-gas or panic).
 
-We define $\Psi_A$, the Accumulation invocation function as: $$\begin{aligned}
+We define $\Psi_A$, the Accumulation invocation function as: $$\begin{gathered}
   \label{eq:accinvocation}
-  \Psi_A& \colon\abracegroup{
+  \Psi_A \colon\abracegroup{
     \tuple{
       \partialstate, \timeslot, \serviceid, \gas, \sequence{\operandtuple \cup \defxfer}
     }
-    &\to \acconeout
-    \\
+    &\to \acconeout \\
     \tup{\aoNpoststate, t, s, g, \mathbf{i}} &\mapsto \begin{cases}
       \tup{
-        \is{\aoNpoststate}{\mathbf{s}},
+        \aoNpoststate,
+        \is{\aoNmodifiedaccounts}{\emset},
         \is{\aoNdefxfers}{\sq{}},
         \is{\aoNyield}{\none},
         \is{\aoNgasused}{0},
         \is{\aoNprovisions}{\sq{}}
       }
-        &\when \jamNblob = \none \vee \len{\jamNblob} > \Cmaxservicecodesize \\
-      C(\Psi_M(\jamNblob, 5, g, \encode{t, s, \len{\mathbf{i}}}, F, I(\mathbf{s}, s)^2))
-        &\otherwise \\
-      \begin{aligned}
-        &\quad\where \jamNblob = \aoNpoststate_\psNaccounts\subb{s}_\saNcode\\
-        &\quad\also \mathbf{s}= \aoNpoststate\exc \mathbf{s}_\psNaccounts\subb{s}_\saNbalance = \aoNpoststate_\psNaccounts\subb{s}_\saNbalance + \sum_{r \in \mathbf{x}}r_\dxNamount\\
-        &\quad\also \mathbf{x} = \sq{\build{i}{
-          i \orderedin \mathbf{i} ,
-          i \in \defxfer
-        }}
-      \end{aligned}\\
+        &\when s \not\in \keys{\aoNpoststate_\psNaccounts} \\
+      \tup{
+        \is{\aoNpoststate}{\mathbf{s}},
+        \aoNmodifiedaccounts,
+        \is{\aoNdefxfers}{\sq{}},
+        \is{\aoNyield}{\none},
+        \is{\aoNgasused}{0},
+        \is{\aoNprovisions}{\sq{}}
+      }
+        &\otherwhen \jamNblob = \none \vee \len{\jamNblob} > \Cmaxservicecodesize \\
+      C(\Psi_M(\jamNblob, 5, g, \encode{t, s, \len{\mathbf{i}}}, F, I(\mathbf{s}, \aoNmodifiedaccounts, s)^2))
+        &\otherwise
     \end{cases} \\
+    &\phantom{{}\mapsto{}} \where \jamNblob = \aoNpoststate_\psNaccounts\subb{s}_\saNcode \\
+    &\phantom{{}\mapsto{}} \also \mathbf{s}= \aoNpoststate\exc \abracegroup{
+      \mathbf{s}_\psNaccounts\subb{s}_\saNbalance &= \aoNpoststate_\psNaccounts\subb{s}_\saNbalance + \!\!\!\!\!\sum_{r \in \mathbf{x}, r_\dxNdestsupervisor = \bot}\!\!\!\!\!r_\dxNamount \\
+      \mathbf{s}_\psNaccounts\subb{s}_\saNsupervisorbalance &= \aoNpoststate_\psNaccounts\subb{s}_\saNsupervisorbalance + \!\!\!\!\!\sum_{r \in \mathbf{x}, r_\dxNdestsupervisor = \top}\!\!\!\!\!r_\dxNamount
+    } \\
+    &\phantom{{}\mapsto{}} \also \aoNmodifiedaccounts = \set{\build{s}{r \in \mathbf{x}}} \\
+    &\phantom{{}\mapsto{}} \also \mathbf{x} = \sq{\build{i}{
+      i \orderedin \mathbf{i} ,
+      i \in \defxfer
+    }}
   }\\
-  I&\colon\abracegroup{
-    \tuple{\partialstate, \serviceid} &\to \implications\\
-    \tup{\imNstate, \imNid} &\mapsto \tup{
+  I\colon\abracegroup{
+    \tuple{\partialstate, \protoset{\serviceid}, \serviceid} &\to \implications\\
+    \tup{\imNstate, \imNmodifiedaccounts, \imNid} &\mapsto \tup{
       \imNid,
       \imNstate,
+      \imNmodifiedaccounts,
       \imNnextfreeid,
       \is{\imNxfers}{\sq{}},
       \is{\imNyield}{\none},
@@ -4019,7 +4098,7 @@ We define $\Psi_A$, the Accumulation invocation function as: $$\begin{aligned}
     }\\
     &\qquad\where \imNnextfreeid = \text{check}((\decode[4]{\blake{\encode{\imNid, \entropyaccumulator', \H_\Ntimeslot}}} \bmod (2^{32}-\Cminpublicindex-2^8)) + \Cminpublicindex) \\
   }\\
-  F \in \contextmutator{\implicationspair} &\colon \tup{n, \gascounter, \registers, \memory, \imXY} \mapsto \begin{cases}
+  F \in \contextmutator{\implicationspair} \colon \tup{n, \gascounter, \registers, \memory, \imXY} \mapsto \begin{cases}
     \Omega_G(\gascounter, \registers, \memory, \imXY) &\when n = \mathtt{gas} \\
     \Omega_\Gemini(\gascounter, \registers, \memory, \imXY, \jamNblob) &\when n = \mathtt{grow\_heap} \\
     \Omega_Y(\gascounter, \registers, \memory, \imXY, \none, \entropyaccumulator', \none, \none, \none, \none, \mathbf{i}) &\when n = \mathtt{fetch}\\
@@ -4032,6 +4111,7 @@ We define $\Psi_A$, the Accumulation invocation function as: $$\begin{aligned}
     \Omega_D(\gascounter, \registers, \memory, \imXY) &\when n = \mathtt{designate}\\
     \Omega_C(\gascounter, \registers, \memory, \imXY) &\when n = \mathtt{checkpoint} \\
     \Omega_N(\gascounter, \registers, \memory, \imXY, \H_\Ntimeslot) &\when n = \mathtt{new} \\
+    \Omega_V(\gascounter, \registers, \memory, \imXY) &\when n = \mathtt{supervisor} \\
     \Omega_U(\gascounter, \registers, \memory, \imXY) &\when n = \mathtt{upgrade} \\
     \Omega_T(\gascounter, \registers, \memory, \imXY) &\when n = \mathtt{transfer} \\
     \Omega_J(\gascounter, \registers, \memory, \imXY, \H_\Ntimeslot) &\when n = \mathtt{eject} \\
@@ -4044,11 +4124,12 @@ We define $\Psi_A$, the Accumulation invocation function as: $$\begin{aligned}
     \tup{\blacktriangleright, \gascounter - \Cgasunknown, \registers', \memory, \imXY} &\otherwise\\
     \multicolumn{2}{l}{\where \registers' = \registers \exc \registers'_7 = \mathtt{WHAT}}
   \end{cases} \\
-  C&\colon\abracegroup{
+  C\colon\abracegroup{
     \tuple{\gas, \blob \cup \set{\oog, \panic}, \implicationspair} &\to \acconeout \\
     \tup{\aoNgasused, \mathbf{o}, \imXY} &\mapsto \begin{cases}
       \tup{
         \is{\aoNpoststate}{\imY_\imNstate},
+        \is{\aoNmodifiedaccounts}{\imY_\imNmodifiedaccounts},
         \is{\aoNdefxfers}{\imY_\imNxfers},
         \is{\aoNyield}{\imY_\imNyield},
         \aoNgasused,
@@ -4056,6 +4137,7 @@ We define $\Psi_A$, the Accumulation invocation function as: $$\begin{aligned}
       } & \when \mathbf{o} \in \set{\oog, \panic} \\
       \tup{
         \is{\aoNpoststate}{\imX_\imNstate},
+        \is{\aoNmodifiedaccounts}{\imX_\imNmodifiedaccounts},
         \is{\aoNdefxfers}{\imX_\imNxfers},
         \is{\aoNyield}{\mathbf{o}},
         \aoNgasused,
@@ -4063,17 +4145,18 @@ We define $\Psi_A$, the Accumulation invocation function as: $$\begin{aligned}
       } & \otherwhen \mathbf{o} \in \hash \\
       \tup{
         \is{\aoNpoststate}{\imX_\imNstate},
+        \is{\aoNmodifiedaccounts}{\imX_\imNmodifiedaccounts},
         \is{\aoNdefxfers}{\imX_\imNxfers},
         \is{\aoNyield}{\imX_\imNyield},
         \aoNgasused,
         \is{\aoNprovisions}{\imX_\imNprovisions}
       } & \otherwise \\
     \end{cases}
-  }\end{aligned}$$
+  }\end{gathered}$$
 
 The mutator $F$ governs how this context will alter for any given parameterization, and the collapse function $C$ selects one of the two dimensions of context depending on whether the virtual machine's halt was regular or exceptional.
 
-The initializer function $I$ maps some partial state along with a service account index to yield a mutator context such that no alterations to the given state are implied in either exit scenario. Note that the component $\imNnextfreeid$ utilizes the random accumulator $\entropyaccumulator'$ and the block's timeslot $\H_\Ntimeslot$ to create a deterministic sequence of identifiers which are extremely likely to be unique.
+The initializer function $I$ maps some partial state, a set identifying modified services, and a service account index to yield a mutator context such that no further alterations to the given state are implied in either exit scenario. Note that the component $\imNnextfreeid$ utilizes the random accumulator $\entropyaccumulator'$ and the block's timeslot $\H_\Ntimeslot$ to create a deterministic sequence of identifiers which are extremely likely to be unique.
 
 Concretely, we create the identifier from the Blake2 hash of the identifier of the creating service, the current random accumulator $\entropyaccumulator'$ and the block's timeslot. Thus, within a service's accumulation it is almost certainly unique, but it is not necessarily unique across all services, nor at all times in the past. We utilize a *check* function to find the first such index in this sequence which does not already represent a service: $$\label{eq:newserviceindex}
   \text{check}(i \in \serviceid) \equiv \begin{cases}
@@ -4378,7 +4461,7 @@ These assume some refine context pair $\tup{\mathbf{m}, \mathbf{e}} \in \tuple{\
 
 These assume a context $\imXY \in \implications^2$; see equation [\[eq:implications\]](#eq:implications){reference-type="ref" reference="eq:implications"}. $$\context \equiv \imXY\ ,\qquad \context' \equiv \tup{\imX', \imY'}$$
 
-  ------------------------- --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ------------------------- -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
                             
   **Identifier**            
   **Gas usage (**$g$**)**   
@@ -4428,24 +4511,34 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                               \end{aligned}$
   (lr)1-1(lr)2-2            
   `write` = 5               $\begin{aligned}
-                                \using \sq{k_O, k_Z, v_O, v_Z} &= \registers\subrange{7}{4} \\
+                                \using d &= \begin{cases}
+                                  \imX_\imNid &\when \registers_7 = 2^{64} - 1 \\
+                                  \registers_7 &\otherwise
+                                \end{cases} \\
+                                \using \sq{k_O, k_Z, v_O, v_Z} &= \registers\subrange{8}{4} \\
                                 \using \mathbf{k} &= \begin{cases}
                                   \memory\subrange{k_O}{k_Z} &\when \Nrange{k_O}{k_Z} \subseteq \readable{\memory} \\
                                   \error &\otherwise
                                 \end{cases} \\
-                                \using \mathbf{a} &= \begin{cases}
-                                  \imX_\imNself\,,\ \exc \mathbf{k} \not\in \keys{\mathbf{a}_\saNstorage} & \when v_Z = 0 \\
-                                  \imX_\imNself\,,\ \exc \mathbf{a}_\saNstorage\subb{\mathbf{k}} = \memory\subrange{v_O}{v_Z} &\otherwhen \Nrange{v_O}{v_Z} \subseteq \readable{\memory} \\
+                                \using \mathbf{v} &= \begin{cases}
+                                  \memory\subrange{v_O}{v_Z} &\when \Nrange{v_O}{v_Z} \subseteq \readable{\memory} \\
                                   \error &\otherwise
                                 \end{cases} \\
+                                \using \mathbf{d} &= (\imX_\imNstate)_\psNaccounts \\
+                                \using \mathbf{d}' &= \mathbf{d} \exc \begin{cases}
+                                  \mathbf{k} \not\in \keys{\mathbf{d}'\subb{d}_\saNstorage} & \when \len{\mathbf{v}} = 0 \\
+                                  \mathbf{d}'\subb{d}_\saNstorage\subb{\mathbf{k}} = \mathbf{v} &\otherwise
+                                \end{cases} \\
                                 \using l &= \begin{cases}
-                                  \len{(\imX_\imNself)_\saNstorage\subb{\mathbf{k}}} &\when \mathbf{k} \in \keys{(\imX_\imNself)_\saNstorage} \\
+                                  \len{\mathbf{d}\subb{d}_\saNstorage\subb{\mathbf{k}}} &\when \mathbf{k} \in \keys{\mathbf{d}\subb{d}_\saNstorage} \\
                                   \mathtt{NONE} &\otherwise
                                 \end{cases} \\
-                                \tup{\execst', \registers'_7, \imX_\imNself'} &\equiv \begin{cases}
-                                  \tup{\panic, \registers_7, \imX_\imNself} &\when \mathbf{k} = \error \vee \mathbf{a} = \error\\
-                                  \tup{\blacktriangleright, \mathtt{FULL}, \imX_\imNself} &\otherwhen \mathbf{a}_\saNminbalance > \mathbf{a}_\saNbalance \\
-                                  \tup{\blacktriangleright, l, \mathbf{a}} &\otherwise\\
+                                \tup{\execst', \registers'_7, (\imX_\imNstate')_\psNaccounts, \imX_\imNmodifiedaccounts'} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, \mathbf{d}, \imX_\imNmodifiedaccounts} &\when \mathbf{k} = \error \vee \mathbf{v} = \error\\
+                                  \tup{\blacktriangleright, \mathtt{WHO}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen d \not\in \keys{\mathbf{d}} \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen \imX_\imNid \not\in \set{d, \effectivesupervisor{\mathbf{d}}{d}} \\
+                                  \tup{\blacktriangleright, \mathtt{FULL}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen \mathbf{d}'\subb{d}_\saNminbalance > \mathbf{d}'\subb{d}_\saNbalance + \mathbf{d}'\subb{d}_\saNsupervisorbalance \\
+                                  \tup{\blacktriangleright, l, \mathbf{d}', \imX_\imNmodifiedaccounts \cup \set{d}} &\otherwise\\
                                 \end{cases} \\
                                 g &\equiv \CgasWconst + \fnmemgas(\CgasWkeylinear, k_Z) + \fnmemgas(\CgasWvallinear, v_Z)
                               \end{aligned}$
@@ -4457,13 +4550,16 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                                 \end{cases} \\
                                 \using o &= \registers_8 \\
                                 \using \mathbf{v} &= \begin{cases}
-                                  \encode{
-                                    \mathbf{a}_\saNcodehash,
-                                    \encode[8]{\mathbf{a}_\saNbalance, \mathbf{a}_\saNminbalance, \mathbf{a}_\saNminaccgas, \mathbf{a}_\saNminmemogas, \mathbf{a}_\saNoctets},
-                                    \encode[4]{\mathbf{a}_\saNitems},
-                                    \encode[8]{\mathbf{a}_\saNgratis},
-                                    \encode[4]{\mathbf{a}_\saNcreated, \mathbf{a}_\saNlastacc, \mathbf{a}_\saNparent}
-                                  } &\when \mathbf{a} \ne \none \\
+                                  \begin{aligned}
+                                    &\fnencode(
+                                      \mathbf{a}_\saNcodehash,
+                                      \encode[4]{\mathbf{a}_\saNsupervisor, \mathbf{a}_\saNsupervisorcreated},
+                                      \encode[8]{\mathbf{a}_\saNbalance, \mathbf{a}_\saNsupervisorbalance, \mathbf{a}_\saNminbalance, \mathbf{a}_\saNminaccgas, \mathbf{a}_\saNminmemogas, \mathbf{a}_\saNoctets}, \\
+                                    &\phantom{\fnencode(}
+                                      \encode[4]{\mathbf{a}_\saNitems},
+                                      \encode[8]{\mathbf{a}_\saNgratis},
+                                      \encode[4]{\mathbf{a}_\saNcreated, \mathbf{a}_\saNlastacc, \mathbf{a}_\saNparent})
+                                  \end{aligned} &\when \mathbf{a} \ne \none \\
                                   \none &\otherwise
                                 \end{cases} \\
                                 \using f &= \min(\registers_{9}, \len{\mathbf{v}}) \\
@@ -4532,120 +4628,192 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                               \end{aligned}$
   (lr)1-1(lr)2-2            
   `new` = 19                $\begin{aligned}
-                                \using \sq{o, l, \saNminaccgas, \saNminmemogas, \saNgratis, i} &= \registers\subrange{7}{6} \\
-                                \using \saNcodehash &= \begin{cases}
-                                  \memory\subrange{o}{32} &\when \Nrange{o}{32} \subseteq \readable{\memory} \wedge l \in \Nbits{32} \\
-                                  \error &\otherwise
-                                \end{cases}\\
-                                \using \mathbf{a} \in \serviceaccount \cup \set{\error} &= \begin{cases}
-                                  \tup{
-                                    \saNcodehash,
-                                    \is{\mathbf{\saNstorage}}{\emset},
-                                    \is{\mathbf{\saNrequests}}{\set{\kv{\tup{c, l}}{\sq{}}}},
-                                    \is{\saNbalance}{\mathbf{a}_\saNminbalance},
-                                    \saNminaccgas,
-                                    \saNminmemogas,
-                                    \is{\mathbf{\saNpreimages}}{\emset},
-                                    \is{\saNcreated}{t},
-                                    \saNgratis,
-                                    \is{\saNlastacc}{0},
-                                    \is{\saNparent}{\imX_\imNid}
-                                  } &\when c \ne \error \\
-                                  \error &\otherwise
+                                \using s &= \begin{cases}
+                                  \imX_\imNid &\when \registers_7 = 2^{64} - 1 \\
+                                  \registers_7 &\otherwise
                                 \end{cases} \\
-                                \using \mathbf{s} &= \imX_\imNself \exc \mathbf{s}_\saNbalance = (\imX_\imNself)_\saNbalance - \mathbf{a}_\saNminbalance \\
-                                \tup{\execst', \registers'_7, \imX'_\imNnextfreeid, (\imX'_\imNstate)_\psNaccounts} &\equiv \begin{cases}
-                                  \tup{\panic, \registers_7, \imX_\imNnextfreeid, (\imX_\imNstate)_\psNaccounts} &\when c = \error \\
-                                  \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNnextfreeid, (\imX_\imNstate)_\psNaccounts} &\otherwhen f \ne 0 \wedge \imX_\imNid \ne (\imX_\imNstate)_\psNmanager \\
-                                  \tup{\blacktriangleright, \mathtt{CASH}, \imX_\imNnextfreeid, (\imX_\imNstate)_\psNaccounts} &\otherwhen \mathbf{s}_\saNbalance < (\imX_\imNself)_\saNminbalance \\
-                                  \tup{\blacktriangleright, \mathtt{FULL}, \imX_\imNnextfreeid, (\imX_\imNstate)_\psNaccounts} &\otherwhen \imX_\imNid = (\imX_\imNstate)_\psNregistrar \wedge i< \Cminpublicindex \wedge i\in \keys{(\imX_\imNstate)_\psNaccounts} \\
-                                  \tup{\blacktriangleright, i, \imX_\imNnextfreeid, (\imX_\imNstate)_\psNaccounts \cup \mathbf{d}} &\otherwhen \imX_\imNid = (\imX_\imNstate)_\psNregistrar \wedge i< \Cminpublicindex \\
-                                  \multicolumn{2}{l}{\quad \where \mathbf{d} = \set{ \kv{i}{\mathbf{a}}, \kv{\imX_\imNid}{\mathbf{s}} }}\\
-                                  \tup{\blacktriangleright, \imX_\imNnextfreeid, i^*, (\imX_\imNstate)_\psNaccounts \cup \mathbf{d}} &\otherwise \\
-                                  \multicolumn{2}{l}{\quad \where i^* = \text{check}(\Cminpublicindex + (\imX_\imNnextfreeid - \Cminpublicindex + 42) \bmod (2^{32} - \Cminpublicindex - 2^8))}\\
-                                  \multicolumn{2}{l}{\quad \also \mathbf{d} = \set{ \kv{\imX_\imNnextfreeid}{\mathbf{a}}, \kv{\imX_\imNid}{\mathbf{s}} }}\\
+                                \using \sq{i, x, o} &= \registers\subrange{8}{3} \\
+                                \using &\encode{\saNcodehash, \encode[4]{l}, \encode[8]{\saNminaccgas, \saNminmemogas, \saNgratis}} = \memory\subrange{o}{60} \\
+                                \using \tup{i', i^*} &= \begin{cases}
+                                  \tup{i, \imX_\imNnextfreeid} &\when \imX_\imNid = (\imX_\imNstate)_\psNregistrar \wedge i< \Cminpublicindex \\
+                                  \tup{\imX_\imNnextfreeid, \text{check}(\Cminpublicindex + (\imX_\imNnextfreeid - \Cminpublicindex + 42) \bmod (2^{32} - \Cminpublicindex - 2^8))} &\otherwise
+                                \end{cases}\\
+                                \using \mathbf{a} \in \serviceaccount &= \tup{\begin{aligned}
+                                  &\saNcodehash,
+                                  \is{\mathbf{\saNstorage}}{\emset},
+                                  \is{\mathbf{\saNrequests}}{\set{\kv{\tup{\saNcodehash, l}}{\sq{}}}},
+                                  \saNbalance,
+                                  \is{\saNsupervisor}{\imX_\imNid},
+                                  \is{\saNsupervisorcreated}{(\imX_\imNself)_\saNcreated},
+                                  \is{\saNsupervisorbalance}{\mathbf{a}_\saNminbalance - \saNbalance}, \\
+                                  &\saNminaccgas,
+                                  \saNminmemogas,
+                                  \is{\mathbf{\saNpreimages}}{\emset},
+                                  \is{\saNcreated}{t},
+                                  \saNgratis,
+                                  \is{\saNlastacc}{0},
+                                  \is{\saNparent}{\imX_\imNid}
+                                \end{aligned}} \\
+                                &\phantom{{}={}} \where \saNbalance = \begin{cases}
+                                  \mathbf{a}_\saNminbalance &\when x \in \set{0, 1} \\
+                                  0 &\otherwise
+                                \end{cases} \\
+                                \using \mathbf{d} &= (\imX_\imNstate)_\psNaccounts \\
+                                \using \mathbf{d}' &= \mathbf{d} \exc \begin{cases}
+                                  \mathbf{d}'\subb{i'} = \mathbf{a} &\text{always} \\
+                                  \mathbf{d}'\subb{s}_\saNbalance = \mathbf{d}\subb{s}_\saNbalance - \mathbf{a}_\saNminbalance &\when x \in \set{0, 2} \\
+                                  \mathbf{d}'\subb{s}_\saNsupervisorbalance = \mathbf{d}\subb{s}_\saNsupervisorbalance - \mathbf{a}_\saNminbalance &\otherwise
+                                \end{cases} \\
+                                \using p &= \begin{cases}
+                                  \imX_\imNid \in \set{s, \effectivesupervisor{\mathbf{d}}{s}} &\when x \in \set{0, 2} \\
+                                  \imX_\imNid = \effectivesupervisor{\mathbf{d}}{s} &\otherwise
+                                \end{cases} \\
+                                \tup{\execst', \registers'_7, \imX'_\imNnextfreeid, (\imX'_\imNstate)_\psNaccounts, \imX'_\imNmodifiedaccounts} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, \imX_\imNnextfreeid, \mathbf{d}, \imX_\imNmodifiedaccounts} &\when \Nrange{o}{60} \not\subseteq \readable{\memory} \\
+                                  \tup{\blacktriangleright, \mathtt{WHO}, \imX_\imNnextfreeid, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen s \not\in \keys{\mathbf{d}} \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNnextfreeid, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen x > 3 \lor \neg p \lor (\saNgratis \ne 0 \wedge \imX_\imNid \ne (\imX_\imNstate)_\psNmanager) \\
+                                  \tup{\blacktriangleright, \mathtt{CASH}, \imX_\imNnextfreeid, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen \mathbf{d}'\subb{s}_\saNbalance < 0 \lor \mathbf{d}'\subb{s}_\saNsupervisorbalance < 0 \lor {} \\
+                                  &\phantom{\otherwhen} \mathbf{d}'\subb{s}_\saNbalance + \mathbf{d}'\subb{s}_\saNsupervisorbalance < \mathbf{d}'\subb{s}_\saNminbalance \\
+                                  \tup{\blacktriangleright, \mathtt{FULL}, \imX_\imNnextfreeid, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen \imX_\imNid = (\imX_\imNstate)_\psNregistrar \wedge i< \Cminpublicindex \wedge i\in \keys{\mathbf{d}} \\
+                                  \tup{\blacktriangleright, i', i^*, \mathbf{d}', \imX_\imNmodifiedaccounts \cup \set{s}} &\otherwise
                                 \end{cases} \\
                                 g &\equiv \CgasN
                               \end{aligned}$
   (lr)1-1(lr)2-2            
+  `supervisor` = 28         $\begin{aligned}
+                                \using d &= \begin{cases}
+                                  \imX_\imNid &\when \registers_7 = 2^{64} - 1 \\
+                                  \registers_7 &\otherwise
+                                \end{cases} \\
+                                \using u &= \begin{cases}
+                                  \imX_\imNid &\when \registers_8 = 2^{64} - 1 \\
+                                  \registers_8 &\otherwise
+                                \end{cases} \\
+                                \using \mathbf{d} &= (\imX_\imNstate)_\psNaccounts \\
+                                \using \mathbf{d}' &= \mathbf{d} \exc \abracegroup{
+                                  \mathbf{d}'\subb{d}_\saNsupervisor &= u \\
+                                  \mathbf{d}'\subb{d}_\saNsupervisorcreated &= \mathbf{d}\subb{u}_\saNcreated
+                                } \\
+                                \tup{\registers'_7, (\imX'_\imNstate)_\psNaccounts, \imX'_\imNmodifiedaccounts} &\equiv \begin{cases}
+                                  \tup{\mathtt{WHO}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\when d \not\in \keys{\mathbf{d}} \lor u \not\in \keys{\mathbf{d}} \\
+                                  \tup{\mathtt{HUH}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen \imX_\imNid \ne \effectivesupervisor{\mathbf{d}}{d} \\
+                                  \tup{\mathtt{OK}, \mathbf{d}', \imX_\imNmodifiedaccounts \cup \set{d}} &\otherwise
+                                \end{cases} \\
+                                g &\equiv \CgasV
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
   `upgrade` = 20            $\begin{aligned}
-                                \using \sq{o, a, m} &= \registers\subrange{7}{3} \\
+                                \using d &= \begin{cases}
+                                  \imX_\imNid &\when \registers_7 = 2^{64} - 1 \\
+                                  \registers_7 &\otherwise
+                                \end{cases} \\
+                                \using \sq{o, a, m} &= \registers\subrange{8}{3} \\
                                 \using c &= \begin{cases}
                                   \memory\subrange{o}{32} &\when \Nrange{o}{32} \subseteq \readable{\memory} \\
                                   \error &\otherwise
                                 \end{cases} \\
-                                \tup{\execst', \registers'_7, (\imX'_\imNself)_\saNcodehash, (\imX'_\imNself)_\saNminaccgas, (\imX'_\imNself)_\saNminmemogas} &\equiv \begin{cases}
-                                  \tup{\panic, \registers_7, (\imX_\imNself)_\saNcodehash, (\imX_\imNself)_\saNminaccgas, (\imX_\imNself)_\saNminmemogas} &\when c = \error \\
-                                  \tup{\blacktriangleright, \mathtt{OK}, c, a, m} &\otherwise \\
+                                \using \mathbf{d} &= (\imX_\imNstate)_\psNaccounts \\
+                                \using \mathbf{d}' &= \mathbf{d} \exc \abracegroup{
+                                  \mathbf{d}'\subb{d}_\saNcodehash &= c \\
+                                  \mathbf{d}'\subb{d}_\saNminaccgas &= a \\
+                                  \mathbf{d}'\subb{d}_\saNminmemogas &= m
+                                } \\
+                                \tup{\execst', \registers'_7, (\imX'_\imNstate)_\psNaccounts, \imX'_\imNmodifiedaccounts} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, \mathbf{d}, \imX_\imNmodifiedaccounts} &\when c = \error \\
+                                  \tup{\blacktriangleright, \mathtt{WHO}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen d \not\in \keys{\mathbf{d}} \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen \imX_\imNid \not\in \set{d, \effectivesupervisor{\mathbf{d}}{d}} \\
+                                  \tup{\blacktriangleright, \mathtt{OK}, \mathbf{d}', \imX_\imNmodifiedaccounts \cup \set{d}} &\otherwise \\
                                 \end{cases} \\
                                 g &\equiv \CgasU
                               \end{aligned}$
   (lr)1-1(lr)2-2            
   `transfer` = 21           $\begin{aligned}
-                                \using \sq{\dxNdest, \dxNamount, l, o} &= \registers\subrange{7}{4},  \\
-                                \using \mathbf{d} &= (\imX_\imNstate)_\psNaccounts\\
-                                \using \mathbf{t} \in \defxfer \cup \set{\error} &= \begin{cases}
-                                  \tup{
-                                    \is{\dxNsource}{\imX_\imNid},
+                                \using \dxNsource &= \begin{cases}
+                                  \imX_\imNid &\when \registers_7 = 2^{64} - 1 \\
+                                  \registers_7 &\otherwise
+                                \end{cases} \\
+                                \using \dxNdest &= \begin{cases}
+                                  \imX_\imNid &\when \registers_8 = 2^{64} - 1 \\
+                                  \registers_8 &\otherwise
+                                \end{cases} \\
+                                \using \sq{x, \dxNamount, l, o} &= \registers\subrange{9}{4} \\
+                                \using \mathbf{t} \in \sequence{\defxfer} \cup \set{\error} &= \begin{cases}
+                                  \sq{} &\when o = 0 \\
+                                  \sq{\tup{
+                                    \dxNsource,
                                     \dxNdest,
+                                    \is{\dxNdestsupervisor}{x \in \set{2, 3}},
                                     \dxNamount,
                                     \is{\dxNmemo}{\memory\subrange{o}{\Cmemosize}},
                                     \is{\dxNgas}{l}
-                                  } &\when \Nrange{o}{\Cmemosize} \subseteq \readable{\memory} \\
+                                  }} &\otherwhen \Nrange{o}{\Cmemosize} \subseteq \readable{\memory} \\
                                   \error &\otherwise
                                 \end{cases} \\
-                                \using b &= (\imX_\imNself)_\saNbalance - \dxNamount \\
+                                \using \mathbf{d} &= (\imX_\imNstate)_\psNaccounts \\
+                                \using \mathbf{d}' &= \mathbf{d} \exc \begin{cases}
+                                  \mathbf{d}'\subb{\dxNsource}_\saNbalance = \mathbf{d}\subb{\dxNsource}_\saNbalance - \dxNamount &\when x \in \set{0, 2} \\
+                                  \mathbf{d}'\subb{\dxNsource}_\saNsupervisorbalance = \mathbf{d}\subb{\dxNsource}_\saNsupervisorbalance - \dxNamount &\when x \in \set{1, 3} \\
+                                  \mathbf{d}'\subb{\dxNdest}_\saNbalance = \mathbf{d}\subb{\dxNdest}_\saNbalance + \dxNamount &\when o = 0 \land x \in \set{0, 1} \\
+                                  \mathbf{d}'\subb{\dxNdest}_\saNsupervisorbalance = \mathbf{d}\subb{\dxNdest}_\saNsupervisorbalance + \dxNamount &\when o = 0 \land x \in \set{2, 3}
+                                \end{cases} \\
+                                \using \mathbf{w} &= \begin{cases}
+                                  \set{\dxNsource, \dxNdest} &\when o = 0 \\
+                                  \set{\dxNsource} &\otherwise
+                                \end{cases} \\
+                                \using p_s &= \begin{cases}
+                                  \imX_\imNid \in \set{\dxNsource, \effectivesupervisor{\mathbf{d}}{\dxNsource}} &\when x \in \set{0, 2} \\
+                                  \imX_\imNid = \effectivesupervisor{\mathbf{d}}{\dxNsource} &\otherwise
+                                \end{cases} \\
+                                \using p_d &= o \ne 0 \lor (\imX_\imNid \in \set{\dxNdest, \effectivesupervisor{\mathbf{d}}{\dxNdest}} \land (x \in \set{1, 2} \lor \dxNsource \ne \dxNdest)) \\
                                 \using \tup{c, t} &= \begin{cases}
                                   \tup{\panic, 0} &\when \mathbf{t} = \error \\
-                                  \tup{\mathtt{WHO}, 0} &\otherwhen \dxNdest \not \in \keys{\mathbf{d}} \\
-                                  \tup{\mathtt{LOW}, 0} &\otherwhen l < \mathbf{d}[\dxNdest]_\saNminmemogas \\
-                                  \tup{\mathtt{CASH}, 0} &\otherwhen b < (\imX_\imNself)_\saNminbalance \\
+                                  \tup{\mathtt{WHO}, 0} &\otherwhen \dxNsource \not\in \keys{\mathbf{d}} \lor \dxNdest \not\in \keys{\mathbf{d}} \\
+                                  \tup{\mathtt{HUH}, 0} &\otherwhen x > 3 \lor \neg p_s \lor \neg p_d \\
+                                  \tup{\mathtt{LOW}, 0} &\otherwhen o \ne 0 \land l < \mathbf{d}\subb{\dxNdest}_\saNminmemogas \\
+                                  \tup{\mathtt{CASH}, 0} &\otherwhen \mathbf{d}'\subb{\dxNsource}_\saNbalance < 0 \lor \mathbf{d}'\subb{\dxNsource}_\saNsupervisorbalance < 0 \lor \mathbf{d}'\subb{\dxNsource}_\saNbalance + \mathbf{d}'\subb{\dxNsource}_\saNsupervisorbalance < \mathbf{d}'\subb{\dxNsource}_\saNminbalance \\
+                                  \tup{\mathtt{OK}, 0} &\otherwhen o = 0 \\
                                   \tup{\mathtt{OK}, l} &\otherwise
                                 \end{cases} \\
-                                \tup{\execst', \registers'_7, \imX'_\imNxfers, (\imX'_\imNself)_\saNbalance} &\equiv \begin{cases}
-                                  \tup{\panic, \registers_7, \imX_\imNxfers, (\imX_\imNself)_\saNbalance} &\when c = \panic \\
-                                  \tup{\blacktriangleright, c, \imX_\imNxfers, (\imX_\imNself)_\saNbalance} &\otherwhen c \ne \mathtt{OK} \\
-                                  \tup{\blacktriangleright, \mathtt{OK}, \imX_\imNxfers \append \mathbf{t}, b} &\otherwise
+                                \tup{\execst', \registers'_7, \imX'_\imNxfers, (\imX'_\imNstate)_\psNaccounts, \imX'_\imNmodifiedaccounts} &\equiv \begin{cases}
+                                  \tup{\panic, \registers_7, \imX_\imNxfers, \mathbf{d}, \imX_\imNmodifiedaccounts} &\when c = \panic \\
+                                  \tup{\blacktriangleright, c, \imX_\imNxfers, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen c \ne \mathtt{OK} \\
+                                  \tup{\blacktriangleright, \mathtt{OK}, \imX_\imNxfers \concat \mathbf{t}, \mathbf{d}', \imX_\imNmodifiedaccounts \cup \mathbf{w}} &\otherwise
                                 \end{cases} \\
                                 g &\equiv \CgasT + t
                               \end{aligned}$
   (lr)1-1(lr)2-2            
   `eject` = 22              $\begin{aligned}
-                                \using \sq{d, o} &= \registers_{7, 8} \\
-                                \using h &= \begin{cases}
-                                  \memory\subrange{o}{32} &\when \Nrange{o}{32} \subseteq \readable{\memory} \\
-                                  \error &\otherwise
-                                \end{cases} \\
-                                \using \mathbf{d} &= \begin{cases}
-                                  (\imX_\imNstate)_\psNaccounts\subb{d} &\when d \ne \imX_\imNid \wedge d \in \keys{(\imX_\imNstate)_\psNaccounts} \\
-                                  \error &\otherwise \\
-                                \end{cases} \\
-                                \using l &= \max(81, \mathbf{d}_\saNoctets) - 81 \\
-                                \using \mathbf{s}' &= \imX_\imNself \exc \mathbf{s}'_\saNbalance = (\imX_\imNself)_\saNbalance + \mathbf{d}_\saNbalance \\
-                                \tup{\execst', \registers'_7, (\imX'_\imNstate)_\psNaccounts} &\equiv \begin{cases}
-                                  \tup{\panic, \registers_7, (\imX_\imNstate)_\psNaccounts} &\when h = \error \\
-                                  \tup{\blacktriangleright, \mathtt{WHO}, (\imX_\imNstate)_\psNaccounts} &\otherwhen \mathbf{d} = \error \vee \mathbf{d}_\saNcodehash \ne \encode[32]{\imX_\imNid} \\
-                                  \tup{\blacktriangleright, \mathtt{HUH}, (\imX_\imNstate)_\psNaccounts} &\otherwhen \mathbf{d}_\saNitems \ne 2 \vee \tup{h, l} \not\in \mathbf{d}_\saNrequests \\
-                                  \tup{\blacktriangleright, \mathtt{OK}, (\imX_\imNstate)_\psNaccounts \setminus \set{d} \cup \set{ \kv{\imX_\imNid}{\mathbf{s}'} }} &\otherwhen \mathbf{d}_\saNrequests\subb{h, l} = \sq{x, y}, y < t - \Cexpungeperiod \\
-                                  \tup{\blacktriangleright, \mathtt{HUH}, (\imX_\imNstate)_\psNaccounts} &\otherwise \\
+                                \using d &= \registers_7 \\
+                                \using \mathbf{d} &= (\imX_\imNstate)_\psNaccounts \\
+                                \using \mathbf{d}' &= \mathbf{d} \exc \abracegroup{
+                                  &d \not\in \keys{\mathbf{d}'} \\
+                                  &\mathbf{d}'\subb{\imX_\imNid}_\saNbalance = (\imX_\imNself)_\saNbalance + \mathbf{d}\subb{d}_\saNbalance + \mathbf{d}\subb{d}_\saNsupervisorbalance \\
+                                } \\
+                                \tup{\registers'_7, (\imX'_\imNstate)_\psNaccounts, \imX'_\imNmodifiedaccounts} &\equiv \begin{cases}
+                                  \tup{\mathtt{WHO}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\when d \not\in \keys{\mathbf{d}} \\
+                                  \tup{\mathtt{HUH}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen d = \imX_\imNid \vee \imX_\imNid \ne \effectivesupervisor{\mathbf{d}}{d} \vee {} \\
+                                  &\phantom{\otherwhen} \mathbf{d}\subb{d}_\saNcreated = t \vee \mathbf{d}\subb{d}_\saNitems \ne 0 \\
+                                  \tup{\mathtt{OK}, \mathbf{d}', \imX_\imNmodifiedaccounts \cup \set{d, \imX_\imNid}} &\otherwise
                                 \end{cases} \\
                                 g &\equiv \CgasJ
                               \end{aligned}$
   (lr)1-1(lr)2-2            
   `query` = 23              $\begin{aligned}
-                                \using \sq{o, z} &= \registers_{7, 8} \\
+                                \using \mathbf{s} &= \begin{cases}
+                                  \imX_\imNself &\when \registers_7 = 2^{64} - 1 \\
+                                  (\imX_\imNstate)_\psNaccounts\subb{\registers_7} &\otherwise
+                                \end{cases} \\
+                                \using \sq{o, z} &= \registers_{8, 9} \\
                                 \using h &= \begin{cases}
                                   \memory\subrange{o}{32} &\when \Nrange{o}{32} \subseteq \readable{\memory} \\
                                   \error &\otherwise
                                 \end{cases} \\
-                                \using \mathbf{a} &= \begin{cases}
-                                  (\imX_\imNself)_\saNrequests\subb{h, z} &\when \tup{h, z} \in \keys{(\imX_\imNself)_\saNrequests}\\
-                                  \error &\otherwise\\
-                                \end{cases} \\
+                                \using \mathbf{a} &= \mathbf{s}_\saNrequests\subb{\tup{h, z}} \\
                                 \tup{\execst', \registers'_7, \registers'_8} &\equiv \begin{cases}
                                   \tup{\blacktriangleright, \mathtt{HUH}, \registers_8} &\when z \not\in \bloblength \\
                                   \tup{\panic, \registers_7, \registers_8} &\otherwhen h = \error \\
-                                  \tup{\blacktriangleright, \mathtt{NONE}, 0} &\otherwhen \mathbf{a} = \error \\
+                                  \tup{\blacktriangleright, \mathtt{WHO}, \registers_8} &\otherwhen \mathbf{s} = \none \\
+                                  \tup{\blacktriangleright, \mathtt{NONE}, 0} &\otherwhen \mathbf{a} = \none \\
                                   \tup{\blacktriangleright, 0, 0} &\otherwhen \mathbf{a} = \sq{} \\
                                   \tup{\blacktriangleright, 1 + 2^{32}x, 0} &\otherwhen \mathbf{a} = \sq{x} \\
                                   \tup{\blacktriangleright, 2 + 2^{32}x, y} &\otherwhen \mathbf{a} = \sq{x, y} \\
@@ -4655,51 +4823,63 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                               \end{aligned}$
   (lr)1-1(lr)2-2            
   `solicit` = 24            $\begin{aligned}
-                                \using \sq{o, z} &= \registers_{7, 8} \\
+                                \using d &= \begin{cases}
+                                  \imX_\imNid &\when \registers_7 = 2^{64} - 1 \\
+                                  \registers_7 &\otherwise
+                                \end{cases} \\
+                                \using \sq{o, z} &= \registers_{8, 9} \\
                                 \using h &= \begin{cases}
                                   \memory\subrange{o}{32} &\when \Nrange{o}{32} \subseteq \readable{\memory} \\
                                   \error &\otherwise
                                 \end{cases} \\
-                                \using \mathbf{a} &= \begin{cases}
-                                  \imX_\imNself \text{ except: } &\\
-                                  \quad \mathbf{a}_\saNrequests\subb{\tup{h, z}} = \sq{} &\when h \ne \error \wedge \tup{h, z} \not\in \keys{(\imX_\imNself)_\saNrequests} \\
-                                  \quad \mathbf{a}_\saNrequests\subb{\tup{h, z}} = (\imX_\imNself)_\saNrequests\subb{\tup{h, z}} \append t &\when (\imX_\imNself)_\saNrequests\subb{\tup{h, z}} = \sq{x, y} \\
+                                \using \mathbf{d} &= (\imX_\imNstate)_\psNaccounts \\
+                                \using \mathbf{d}' &= \begin{cases}
+                                  \mathbf{d} \text{ except: } &\\
+                                  \quad \mathbf{d}'\subb{d}_\saNrequests\subb{\tup{h, z}} = \sq{} &\when \tup{h, z} \not\in \keys{\mathbf{d}\subb{d}_\saNrequests} \\
+                                  \quad \mathbf{d}'\subb{d}_\saNrequests\subb{\tup{h, z}} = \sq{x, y, t} &\when \mathbf{d}\subb{d}_\saNrequests\subb{\tup{h, z}} = \sq{x, y} \\
                                   \error &\otherwise\\
                                 \end{cases} \\
-                                \tup{\execst', \registers'_7, \imX'_\imNself} &\equiv \begin{cases}
-                                  \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNself} &\when z \not \in \bloblength \\
-                                  \tup{\panic, \registers_7, \imX_\imNself} &\otherwhen h = \error \\
-                                  \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNself} &\otherwhen \mathbf{a} = \error \\
-                                  \tup{\blacktriangleright, \mathtt{FULL}, \imX_\imNself} &\otherwhen \mathbf{a}_\saNbalance < \mathbf{a}_\saNminbalance \\
-                                  \tup{\blacktriangleright, \mathtt{OK}, \mathbf{a}} &\otherwise \\
+                                \tup{\execst', \registers'_7, (\imX'_\imNstate)_\psNaccounts, \imX'_\imNmodifiedaccounts} &\equiv \begin{cases}
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\when z \not \in \bloblength \\
+                                  \tup{\panic, \registers_7, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen h = \error \\
+                                  \tup{\blacktriangleright, \mathtt{WHO}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen d \not\in \keys{\mathbf{d}} \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen \imX_\imNid \not\in \set{d, \effectivesupervisor{\mathbf{d}}{d}} \lor \mathbf{d}' = \error \\
+                                  \tup{\blacktriangleright, \mathtt{FULL}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen \mathbf{d}'\subb{d}_\saNbalance + \mathbf{d}'\subb{d}_\saNsupervisorbalance < \mathbf{d}'\subb{d}_\saNminbalance \\
+                                  \tup{\blacktriangleright, \mathtt{OK}, \mathbf{d}', \imX_\imNmodifiedaccounts \cup \set{d}} &\otherwise
                                 \end{cases} \\
                                 g &\equiv \CgasS
                               \end{aligned}$
   (lr)1-1(lr)2-2            
   `forget` = 25             $\begin{aligned}
-                                \using \sq{o, z} &= \registers_{7, 8} \\
+                                \using d &= \begin{cases}
+                                  \imX_\imNid &\when \registers_7 = 2^{64} - 1 \\
+                                  \registers_7 &\otherwise
+                                \end{cases} \\
+                                \using \sq{o, z} &= \registers_{8, 9} \\
                                 \using h &= \begin{cases}
                                   \memory\subrange{o}{32} &\when \Nrange{o}{32} \subseteq \readable{\memory} \\
                                   \error &\otherwise
                                 \end{cases} \\
-                                \using \mathbf{a} &= \begin{cases}
-                                  \imX_\imNself \text{ except:} &\\
-                                  \quad \keys{\mathbf{a}_\saNrequests} = \keys{(\imX_\imNself)_\saNrequests} \setminus \set{\tup{h, z}} &\when (\imX_\imNself)_\saNrequests\subb{h, z} = \sq{} \\
+                                \using \mathbf{d} &= (\imX_\imNstate)_\psNaccounts \\
+                                \using \mathbf{d}' &= \begin{cases}
+                                  \mathbf{d} \text{ except:} &\\
+                                  \quad \tup{h, z} \not\in \keys{\mathbf{d}'\subb{d}_\saNrequests} &\when \mathbf{d}\subb{d}_\saNrequests\subb{\tup{h, z}} = \sq{} \\
                                   \quad \left.
                                     \begin{aligned}
-                                      \keys{\mathbf{a}_\saNrequests} &= \keys{(\imX_\imNself)_\saNrequests} \setminus \set{\tup{h, z}}\ ,\\[2pt]
-                                      \keys{\mathbf{a}_\saNpreimages} &= \keys{(\imX_\imNself)_\saNpreimages} \setminus \set{h}
+                                      \tup{h, z} &\not\in \keys{\mathbf{d}'\subb{d}_\saNrequests}\ ,\\[2pt]
+                                      h &\not\in \keys{\mathbf{d}'\subb{d}_\saNpreimages}
                                     \end{aligned}
-                                  \ \right\} &\when (\imX_\imNself)_\saNrequests\subb{h, z} = \sq{x, y},\ y < t - \Cexpungeperiod \\
-                                  \quad \mathbf{a}_\saNrequests\subb{h, z} = \sq{x, t} &\when (\imX_\imNself)_\saNrequests\subb{h, z} = \sq{x} \\
-                                  \quad \mathbf{a}_\saNrequests\subb{h, z} = \sq{w, t} &\when (\imX_\imNself)_\saNrequests\subb{h, z} = \sq{x, y, w},\ y < t - \Cexpungeperiod \\
+                                  \ \right\} &\when \mathbf{d}\subb{d}_\saNrequests\subb{\tup{h, z}} = \sq{x, y},\ y < t - \Cexpungeperiod \\
+                                  \quad \mathbf{d}'\subb{d}_\saNrequests\subb{\tup{h, z}} = \sq{x, t} &\when \mathbf{d}\subb{d}_\saNrequests\subb{\tup{h, z}} = \sq{x} \\
+                                  \quad \mathbf{d}'\subb{d}_\saNrequests\subb{\tup{h, z}} = \sq{w, t} &\when \mathbf{d}\subb{d}_\saNrequests\subb{\tup{h, z}} = \sq{x, y, w},\ y < t - \Cexpungeperiod \\
                                   \error &\otherwise\\
                                 \end{cases} \\
-                                \tup{\execst', \registers'_7, \imX'_\imNself} &\equiv \begin{cases}
-                                  \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNself} &\when z \not \in \bloblength \\
-                                  \tup{\panic, \registers_7, \imX_\imNself} &\otherwhen h = \error \\
-                                  \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNself} &\otherwhen \mathbf{a} = \error \\
-                                  \tup{\blacktriangleright, \mathtt{OK}, \mathbf{a}} &\otherwise \\
+                                \tup{\execst', \registers'_7, (\imX'_\imNstate)_\psNaccounts, \imX'_\imNmodifiedaccounts} &\equiv \begin{cases}
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\when z \not \in \bloblength \\
+                                  \tup{\panic, \registers_7, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen h = \error \\
+                                  \tup{\blacktriangleright, \mathtt{WHO}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen d \not\in \keys{\mathbf{d}} \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen \imX_\imNid \not\in \set{d, \effectivesupervisor{\mathbf{d}}{d}} \lor \mathbf{d}' = \error \\
+                                  \tup{\blacktriangleright, \mathtt{OK}, \mathbf{d}', \imX_\imNmodifiedaccounts \cup \set{d}} &\otherwise
                                 \end{cases} \\
                                 g &\equiv \CgasF
                               \end{aligned}$
@@ -4742,7 +4922,7 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                                 \end{cases} \\
                                 g &\equiv \CgasAriesconst + \fnmemgas(\CgasArieslinear, z)
                               \end{aligned}$
-  ------------------------- --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ------------------------- -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # C Serialization Codec {#sec:serialization}
 
@@ -4755,6 +4935,8 @@ Our codec function $\mathcal{E}$ is used to serialize some term into a sequence 
 We define the serialization of $\none$ as the empty sequence: $$\encode{\none} \equiv \sq{}$$
 
 We also define the serialization of an octet-sequence as itself: $$\encode{x \in \blob} \equiv x$$
+
+We define the serialization of $\bot$ and $\top$ as a single 0 and 1 octet respectively: $$\encode{\bot} \equiv \sq{0},\qquad\encode{\top} \equiv \sq{1}$$
 
 We define anonymous tuples to be encoded as the concatenation of their encoded elements: $$\encode{\tup{a, b, \dots}} \equiv \encode{a} \concat \encode{b} \concat \dots$$
 
@@ -4780,7 +4962,7 @@ Thus, conveniently, fixed length octet sequences (e.g. hashes $\hash$ and its va
 
 When we have sets of heterogeneous items such as a union of different kinds of tuples or sequences of different length, we require a discriminator to determine the nature of the encoded item for successful deserialization. Discriminators are encoded as a natural and are encoded immediately prior to the item.
 
-We generally use a *length discriminator* when serializing sequence terms which have variable length (e.g. general blobs $\blob$ or unbound numeric sequences $\sequence{\N}$) (though this is omitted in the case of fixed-length terms such as hashes $\hash$).[^19] In this case, we simply prefix the term its length prior to encoding. Thus, for some term $y \in \tup{x \in \blob, \dots}$, we would generally define its serialized form to be $\encode{\len{x}}\concat\encode{x}\concat\dots$. To avoid repetition of the term in such cases, we define the notation $\var{x}$ to mean that the term of value $x$ is variable in size and requires a length discriminator. Formally: $$\var{x} \equiv \tup{\len{x}, x}\text{ thus }\encode{\var{x}} \equiv \encode{\len{x}}\concat\encode{x}$$
+We generally use a *length discriminator* when serializing sequence terms which have variable length (e.g. general blobs $\blob$ or unbound numeric sequences $\sequence{\N}$) (though this is omitted in the case of fixed-length terms such as hashes $\hash$).[^20] In this case, we simply prefix the term its length prior to encoding. Thus, for some term $y \in \tup{x \in \blob, \dots}$, we would generally define its serialized form to be $\encode{\len{x}}\concat\encode{x}\concat\dots$. To avoid repetition of the term in such cases, we define the notation $\var{x}$ to mean that the term of value $x$ is variable in size and requires a length discriminator. Formally: $$\var{x} \equiv \tup{\len{x}, x}\text{ thus }\encode{\var{x}} \equiv \encode{\len{x}}\concat\encode{x}$$
 
 We also define a convenient discriminator operator $\maybe{x}$ specifically for terms defined by some serializable set in union with $\none$ (generally denoted for some set $S$ as $\optional{S}$): $$\begin{aligned}
   \maybe{x} \equiv \begin{cases}
@@ -4994,6 +5176,7 @@ $$\begin{aligned}
     1,
     \encode[4]{\dxX_\dxNsource},
     \encode[4]{\dxX_\dxNdest},
+    \dxX_\dxNdestsupervisor,
     \encode[8]{\dxX_\dxNamount},
     \dxX_\dxNmemo,
     \encode[8]{\dxX_\dxNgas}
@@ -5115,19 +5298,21 @@ The state serialization is then defined as the dictionary built from the amalgam
     \forall \kv{s}{\saX} \in \accounts: &&C(255, s) &\mapsto \encode{
       0,
       \saX_\saNcodehash,
+      \encode[4]{\saX_\saNsupervisor, \saX_\saNsupervisorcreated},
       \encode[8]{
         \saX_\saNbalance,
+        \saX_\saNsupervisorbalance,
         \saX_\saNminaccgas,
         \saX_\saNminmemogas,
         \saX_\saNoctets,
         \saX_\saNgratis
-      },
-      \encode[4]{
-        \saX_\saNitems,
-        \saX_\saNcreated,
-        \saX_\saNlastacc,
-        \saX_\saNparent
       }
+    } \concat \\
+    &&&\phantom{{}\mapsto{}} \encode[4]{
+      \saX_\saNitems,
+      \saX_\saNcreated,
+      \saX_\saNlastacc,
+      \saX_\saNparent
     } \;, \\
     \forall \kv{s}{\saX} \in \accounts, \kv{\mathbf{k}}{\mathbf{v}} \in \saX_\saNstorage:
       &&C(s, \encode[4]{2^{32}-1} \concat \mathbf{k}) &\mapsto \mathbf{v} \;, \\
@@ -5825,6 +6010,10 @@ $\Omega$
 
     :   Upgrade-service host-call.
 
+    $\Omega_V$
+
+    :   Set-supervisor host-call.
+
     $\Omega_W$
 
     :   Write-storage host-call.
@@ -6233,7 +6422,7 @@ $\Ccorecount = 341$
 
 $\Cexpungeperiod = 19,200$
 
-:   The period in timeslots after which an unreferenced preimage may be expunged. See `eject` definition in section [25.5.3](#sec:accumulatefunctions){reference-type="ref" reference="sec:accumulatefunctions"}.
+:   The period in timeslots after which an unreferenced preimage may be expunged. See `forget` definition in section [25.5.3](#sec:accumulatefunctions){reference-type="ref" reference="sec:accumulatefunctions"}.
 
 $\Cepochlen = 600$
 
@@ -6329,7 +6518,7 @@ $\Cmaxbundlesize = 13,791,360$
 
 $\Cmaxservicecodesize = 4,000,000$
 
-:   The maximum size of service code in octets. See equations [\[eq:refinvocation\]](#eq:refinvocation){reference-type="ref" reference="eq:refinvocation"}, [\[eq:accinvocation\]](#eq:accinvocation){reference-type="ref" reference="eq:accinvocation"} & [\[eq:onxferinvocation\]](#eq:onxferinvocation){reference-type="ref" reference="eq:onxferinvocation"}.
+:   The maximum size of service code in octets. See equations [\[eq:refinvocation\]](#eq:refinvocation){reference-type="ref" reference="eq:refinvocation"} & [\[eq:accinvocation\]](#eq:accinvocation){reference-type="ref" reference="eq:accinvocation"}.
 
 $\Csegmentsize = 4104$
 
@@ -6506,6 +6695,10 @@ $\CgasT = 575$
 $\CgasU = 1028$
 
 :   $\Omega_U$ (`upgrade`) base gas cost.
+
+$\CgasV = 1000$
+
+:   $\Omega_V$ (`supervisor`) base gas cost.
 
 $\CgasWconst = 2442$
 
@@ -6705,16 +6898,18 @@ $\Xinvalid = \token{\$jam\_invalid}$
 
 [^12]: This is a "soft" implication since there is no consequence on-chain if dishonestly reported. For more information on this implication see section [16](#sec:assurance){reference-type="ref" reference="sec:assurance"}.
 
-[^13]: The latest "proto-danksharding" changes allow it to accept 87.3[kb]{.smallcaps}/s in committed-to data though this is not directly available within state, so we exclude it from this illustration, though including it with the input data would change the results little.
+[^13]: With one exception: provided preimages are not discarded
 
-[^14]: This is detailed at [{https://hackmd.io/@XXX9CM1uSSCWVNFRYaSB5g/HJarTUhJA}]({https://hackmd.io/@XXX9CM1uSSCWVNFRYaSB5g/HJarTUhJA}){.uri} and intended to be updated as we get more information.
+[^14]: The latest "proto-danksharding" changes allow it to accept 87.3[kb]{.smallcaps}/s in committed-to data though this is not directly available within state, so we exclude it from this illustration, though including it with the input data would change the results little.
 
-[^15]: It is conservative since we don't take into account that the source code was originally compiled into [evm]{.smallcaps} code and thus the [pvm]{.smallcaps} machine code will replicate architectural artifacts and thus is very likely to be pessimistic. As an example, all arithmetic operations in [evm]{.smallcaps} are 256-bit and 64-bit native [pvm]{.smallcaps} is being forced to honor this even if the source code only actually required 64-bit values.
+[^15]: This is detailed at [{https://hackmd.io/@XXX9CM1uSSCWVNFRYaSB5g/HJarTUhJA}]({https://hackmd.io/@XXX9CM1uSSCWVNFRYaSB5g/HJarTUhJA}){.uri} and intended to be updated as we get more information.
 
-[^16]: We speculate that the substantial range could possibly be caused in part by the major architectural differences between the [evm]{.smallcaps} [isa]{.smallcaps} and typical modern hardware.
+[^16]: It is conservative since we don't take into account that the source code was originally compiled into [evm]{.smallcaps} code and thus the [pvm]{.smallcaps} machine code will replicate architectural artifacts and thus is very likely to be pessimistic. As an example, all arithmetic operations in [evm]{.smallcaps} are 256-bit and 64-bit native [pvm]{.smallcaps} is being forced to honor this even if the source code only actually required 64-bit values.
 
-[^17]: As an example, our odd-product benchmark, a very much pure-compute arithmetic task, execution takes 58s on [evm]{.smallcaps}, and 1.04s within our [pvm]{.smallcaps} prototype, including all preprocessing.
+[^17]: We speculate that the substantial range could possibly be caused in part by the major architectural differences between the [evm]{.smallcaps} [isa]{.smallcaps} and typical modern hardware.
 
-[^18]: The popular code generation backend [llvm]{.smallcaps} requires and assumes in its code generation that dynamically computed jump destinations always have a certain memory alignment. Since at present we depend on this for our tooling, we must acquiesce to its assumptions.
+[^18]: As an example, our odd-product benchmark, a very much pure-compute arithmetic task, execution takes 58s on [evm]{.smallcaps}, and 1.04s within our [pvm]{.smallcaps} prototype, including all preprocessing.
 
-[^19]: Note that since specific values may belong to both sets which would need a discriminator and those that would not then we are sadly unable to introduce a function capable of serializing corresponding to the *term*'s limitation. A more sophisticated formalism than basic set-theory would be needed, capable of taking into account not simply the value but the term from which or to which it belongs in order to do this succinctly.
+[^19]: The popular code generation backend [llvm]{.smallcaps} requires and assumes in its code generation that dynamically computed jump destinations always have a certain memory alignment. Since at present we depend on this for our tooling, we must acquiesce to its assumptions.
+
+[^20]: Note that since specific values may belong to both sets which would need a discriminator and those that would not then we are sadly unable to introduce a function capable of serializing corresponding to the *term*'s limitation. A more sophisticated formalism than basic set-theory would be needed, capable of taking into account not simply the value but the term from which or to which it belongs in order to do this succinctly.
