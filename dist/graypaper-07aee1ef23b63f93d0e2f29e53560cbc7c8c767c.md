@@ -4,7 +4,7 @@ subtitle: "A Mostly-Coherent Trustless Supercomputer"
 author: "Dr. Gavin Wood"
 version: "0.8.0"
 date: "unknown"
-hash: "f01d06d5ca6aa10a4a123e185f57f18df908eb12"
+hash: "07aee1ef23b63f93d0e2f29e53560cbc7c8c767c"
 ---
 
 We present a comprehensive and formal definition of JAM, a protocol combining elements of both *Polkadot* and *Ethereum*. In a single coherent model, JAM provides a global singleton permissionless object environment---much like the smart-contract environment pioneered by Ethereum---paired with secure sideband computation parallelized over a scalable node network, a proposition pioneered by Polkadot.
@@ -917,7 +917,7 @@ The service account is defined as the tuple of storage dictionary $\saNstorage$,
   \serviceaccount \equiv \tuple{\ \begin{aligned}
     \saNstorage &\in \dictionary{\blob}{\blob}\,,\
     \saNpreimages \in \dictionary{\hash}{\blob}\,,\\
-    \saNrequests &\in \dictionary{\tuple{\hash,\bloblength}}{\sequence[:3]{\timeslot}}\,,\
+    \saNrequests &\in \dictionary{\tuple{\hash,\preimagelen}}{\sequence[:3]{\timeslot}}\,,\
     \saNgratis \in \balance\,,\
     \saNcodehash \in \hash\,,\\
     \saNbalance &\in \balance\,,\
@@ -3975,8 +3975,8 @@ We define the Refine service-account invocation function as $\Psi_R$. It has no 
 
 The historical-lookup host-call function, $\Omega_H$, is designed to give the same result regardless of the state of the chain for any time when auditing may occur (which we bound to be less than two epochs from being accumulated). The lookup anchor may be up to $\Cmaxlookupanchorage$ timeslots before the recent history and therefore adds to the potential age at the time of audit. We therefore set $\Cexpungeperiod$ to have a safety margin of eight hours: $$\Cexpungeperiod \equiv \Cmaxlookupanchorage + 4,800 = 19,200$$
 
-The inner [pvm]{.smallcaps} invocation host-calls, meanwhile, depend on an integrated [pvm]{.smallcaps} type, which we shall denote $\innerpvm$. It holds a [pvm]{.smallcaps} program blob, instruction counter, [ram]{.smallcaps} and a flag denoting whether gas was already charged for the currently executing basic block: $$\label{eq:innerpvm}
-  \innerpvm \equiv \tuple{\isa{\pgNcode}{\blob}, \isa{\pgNram}{\ram}, \isa{\pgNpc}{\pvmreg}, \isa{\pgNgaschargedflag}{\bool}}$$
+The inner [pvm]{.smallcaps} invocation host-calls, meanwhile, depend on an integrated [pvm]{.smallcaps} type, which we shall denote $\pvmNinstance$. It holds a [pvm]{.smallcaps} program blob, instruction counter, [ram]{.smallcaps}, a flag denoting whether gas was already charged for the currently executing basic block, and the handle of the compiled program module from which it was instantiated: $$\label{eq:innerpvm}
+  \pvmNinstance \equiv \tuple{\isa{\pgNcode}{\blob}, \isa{\pgNram}{\ram}, \isa{\pgNpc}{\pvmreg}, \isa{\pgNgaschargedflag}{\bool}, \isa{\pgNhandle}{\N}}$$
 
 The Export host-call depends on two pieces of context; one sequence of segments (blobs of length $\Csegmentsize$) to which it may append, and the other an argument passed to the invocation function to dictate the number of segments prior which may be assumed to have already been appended. The latter value ensures that an accurate segment index can be provided to the caller.
 
@@ -3989,28 +3989,29 @@ Unlike the other invocation functions, the Refine invocation function implicitly
       \tup{\token{BIG}, \sq{}, 0} &\otherwhen \len{\histlookup(\accounts\subb{w_\wiNserviceindex}, (p_\wpNcontext)_\wcNlookupanchortime, w_\wiNcodehash)} > \Cmaxservicecodesize \\
       &\otherwise: \\
       &\quad\using \mathbf{a} = \encode{c, i, w_\wiNserviceindex, \var{w_\wiNpayload}, \blake{p}}\;,\ \encode{\var{\mathbf{z}}, \jamNblob} = \histlookup(\accounts\subb{w_\wiNserviceindex}, (p_\wpNcontext)_\wcNlookupanchortime, w_\wiNcodehash)\\
-      &\quad\also \tup{u, \mathbf{o}, \tup{\mathbf{m}, \mathbf{e}}} = \Psi_M(\jamNblob, 0, w_\wiNrefgaslimit, \mathbf{a}, F, \tup{\emptyset, \sq{}})\ \colon\\
+      &\quad\also \tup{u, \mathbf{o}, \tup{\mathbf{m}, \pvmNmoduleNmap, \mathbf{e}}} = \Psi_M(\jamNblob, 0, w_\wiNrefgaslimit, \mathbf{a}, F, \tup{\emptyset, \emptyset, \sq{}})\ \colon\\
       \tup{\mathbf{o}, \sq{}, u} &\quad\when \mathbf{o} \in \set{ \oog, \panic }  \\
       \tup{\mathbf{o}, \mathbf{e}, u} &\quad\otherwise \\
       \multicolumn{2}{l}{\where w = p_\wpNworkitems\subb{i}}
     \end{cases} \\
   } \\
   \label{eq:refinemutator}
-  &F \in \contextmutator{\tuple{\dictionary{\N}{\innerpvm}, \sequence{\segment}}} \colon
-    (n, \gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}) \mapsto \begin{cases}
-      \Omega_G(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}) &\when n = \mathtt{gas} \\
-      \Omega_\Gemini(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}, \jamNblob) &\when n = \mathtt{grow\_heap} \\
-      \Omega_Y(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}, p, \zerohash, \mathbf{r}, i, \overline{\mathbf{i}}, \overline{\mathbf{x}}, \none) &\when n = \mathtt{fetch}\\
-      \Omega_H(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}, w_\wiNserviceindex, \accounts, (p_\wpNcontext)_\wcNlookupanchortime) &\when n = \mathtt{historical\_lookup}\\
-      \Omega_E(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}, \segoff) &\when n = \mathtt{export}\\
-      \Omega_M(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}) &\when n = \mathtt{machine}\\
-      \Omega_P(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}) &\when n = \mathtt{peek}\\
-      \Omega_O(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}) &\when n = \mathtt{poke}\\
-      \Omega_Z(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}) &\when n = \mathtt{pages}\\
-      \Omega_K(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}) &\when n = \mathtt{invoke}\\
-      \Omega_X(\gascounter, \registers, \memory, \tup{\mathbf{m}, \mathbf{e}}) &\when n = \mathtt{expunge}\\
-      \tup{\oog, 0, \registers', \memory, \tup{\mathbf{m}, \mathbf{e}}} &\otherwhen \gascounter < \Cgasunknown\\
-      \tup{\blacktriangleright, \gascounter - \Cgasunknown, \registers', \memory, \tup{\mathbf{m}, \mathbf{e}}} &\otherwise\\
+  &F \in \contextmutator{\tuple{\dictionary{\N}{\pvmNinstance}, \dictionary{\N}{\pvmNmodule}, \sequence{\segment}}} \colon
+    (n, \gascounter, \registers, \memory, \tup{\mathbf{m}, \pvmNmoduleNmap, \mathbf{e}}) \mapsto \begin{cases}
+      \Omega_G(\gascounter, \registers, \memory, \tup{\mathbf{m}, \pvmNmoduleNmap, \mathbf{e}}) &\when n = \mathtt{gas} \\
+      \Omega_\Gemini(\gascounter, \registers, \memory, \tup{\mathbf{m}, \pvmNmoduleNmap, \mathbf{e}}, \jamNblob) &\when n = \mathtt{grow\_heap} \\
+      \Omega_Y(\gascounter, \registers, \memory, \tup{\mathbf{m}, \pvmNmoduleNmap, \mathbf{e}}, p, \zerohash, \mathbf{r}, i, \overline{\mathbf{i}}, \overline{\mathbf{x}}, \none) &\when n = \mathtt{fetch}\\
+      \Omega_H(\gascounter, \registers, \memory, \tup{\mathbf{m}, \pvmNmoduleNmap, \mathbf{e}}, w_\wiNserviceindex, \accounts, (p_\wpNcontext)_\wcNlookupanchortime) &\when n = \mathtt{historical\_lookup}\\
+      \Omega_E(\gascounter, \registers, \memory, \tup{\mathbf{m}, \pvmNmoduleNmap, \mathbf{e}}, \segoff) &\when n = \mathtt{export}\\
+      \Omega_\Gamma(\gascounter, \registers, \memory, \tup{\mathbf{m}, \pvmNmoduleNmap, \mathbf{e}}, w_\wiNserviceindex, \accounts, (p_\wpNcontext)_\wcNlookupanchortime) &\when n = \mathtt{compile}\\
+      \Omega_M(\gascounter, \registers, \memory, \tup{\mathbf{m}, \pvmNmoduleNmap, \mathbf{e}}) &\when n = \mathtt{machine}\\
+      \Omega_P(\gascounter, \registers, \memory, \tup{\mathbf{m}, \pvmNmoduleNmap, \mathbf{e}}) &\when n = \mathtt{peek}\\
+      \Omega_O(\gascounter, \registers, \memory, \tup{\mathbf{m}, \pvmNmoduleNmap, \mathbf{e}}) &\when n = \mathtt{poke}\\
+      \Omega_Z(\gascounter, \registers, \memory, \tup{\mathbf{m}, \pvmNmoduleNmap, \mathbf{e}}) &\when n = \mathtt{pages}\\
+      \Omega_K(\gascounter, \registers, \memory, \tup{\mathbf{m}, \pvmNmoduleNmap, \mathbf{e}}) &\when n = \mathtt{invoke}\\
+      \Omega_X(\gascounter, \registers, \memory, \tup{\mathbf{m}, \pvmNmoduleNmap, \mathbf{e}}) &\when n = \mathtt{expunge}\\
+      \tup{\oog, 0, \registers', \memory, \tup{\mathbf{m}, \pvmNmoduleNmap, \mathbf{e}}} &\otherwhen \gascounter < \Cgasunknown\\
+      \tup{\blacktriangleright, \gascounter - \Cgasunknown, \registers', \memory, \tup{\mathbf{m}, \pvmNmoduleNmap, \mathbf{e}}} &\otherwise\\
       \multicolumn{2}{l}{\where \registers' = \registers \exc \registers'_7 = \mathtt{WHAT}} \\
       \multicolumn{2}{l}{\also \overline{\mathbf{x}} = \sq{\build{
         \sq{\build{
@@ -4298,7 +4299,7 @@ These make no assumptions about the context $\context$; it is always passed thro
 
 ### B.5.2 Refine Functions {#sec:refinefunctions}
 
-These assume some refine context pair $\tup{\mathbf{m}, \mathbf{e}} \in \tuple{\dictionary{\N}{\innerpvm}, \sequence{\segment}}$, which are both initially empty. $$\context \equiv \tup{\mathbf{m}, \mathbf{e}}\ ,\qquad \context' \equiv \tup{\mathbf{m}', \mathbf{e}'}$$
+These assume some refine context triple $\tup{\mathbf{m}, \pvmNmoduleNmap, \mathbf{e}} \in \tuple{\dictionary{\N}{\pvmNinstance}, \dictionary{\N}{\pvmNmodule}, \sequence{\segment}}$, which are all initially empty. $$\context \equiv \tup{\mathbf{m}, \pvmNmoduleNmap, \mathbf{e}}\ ,\qquad \context' \equiv \tup{\mathbf{m}', \pvmNmoduleNmap', \mathbf{e}'}$$
 
   ------------------------- -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
                             
@@ -4342,24 +4343,49 @@ These assume some refine context pair $\tup{\mathbf{m}, \mathbf{e}} \in \tuple{\
                                 g &\equiv \CgasE
                               \end{aligned}$
   (lr)1-1(lr)2-2            
-  `machine` = 9             $\begin{aligned}
-                                \using \sq{p_O, p_Z, i} &= \registers\subrange{7}{3} \\
+  `compile` = 9             $\begin{aligned}
+                                \using \sq{m, p, l, f, i} &= \registers\subrange{7}{5} \\
+                                \using \mathbf{a} &= \begin{cases}
+                                  \mathbf{d}\subb{s} &\when i = 2^{64} - 1 \\
+                                  \mathbf{d}\subb{i} &\otherwise
+                                \end{cases} \\
                                 \using \mathbf{p} &= \begin{cases}
-                                  \memory\subrange{p_O}{p_Z} &\when \Nrange{p_O}{p_Z} \subseteq \readable{\memory} \\
-                                  \error &\otherwise
+                                  \memory\subrange{p}{l} &\when m = 0 \wedge \Nrange{p}{l} \subseteq \readable{\memory} \\
+                                  \error &\otherwhen m = 0 \vee (m = 1 \wedge \Nrange{p}{32} \not\subseteq \readable{\memory}) \\
+                                  \mathbf{h}\subrange{f^*}{l^*} &\otherwhen m = 1 \wedge \mathbf{a} \ne \none \wedge \mathbf{h} \ne \none \\
+                                  \multicolumn{2}{l}{\where \mathbf{h} = \histlookup(\mathbf{a}, t, \memory\subrange{p}{32}),\ f^* = \min(f, \len{\mathbf{h}}),\ l^* = \min(l, \len{\mathbf{h}} - f^*)} \\
+                                  \none &\otherwise
                                 \end{cases} \\
-                                \using n &= \min(n \in \N : n \not\in \keys{\mathbf{m}}) \\
-                                \using \mathbf{u} &= \tup{\is{\ramNvalue}{[0, 0, \dots]},\is{\ramNaccess}{[\none, \none, \dots]}} \\
-                                \tup{\execst', \registers'_7, \mathbf{m}} &\equiv \begin{cases}
-                                  \tup{\blacktriangleright, \mathtt{FULL}, \mathbf{m}} &\when \len{\mathbf{m}} \ge 63 \\
-                                  \tup{\panic, \registers_7, \mathbf{m}} &\otherwhen \mathbf{p} = \error \\
-                                  \tup{\blacktriangleright, \mathtt{HUH}, \mathbf{m}} &\otherwhen \text{deblob}(\mathbf{p}, i) = \error \\
-                                  \tup{\blacktriangleright, n, \mathbf{m} \cup \set{\kv{n}{\tup{\mathbf{p}, \mathbf{u}, i, \bot}}} } &\otherwise \\
+                                \using \mathbf{H} &= \keys{\pvmNmoduleNmap} \cup \set{\mathbf{m}\subb{n}_\pgNhandle : n \in \keys{\mathbf{m}}} \\
+                                \using k &= \min(n \in \N : n \not\in \mathbf{H}) \\
+                                \tup{\execst', \registers'_7, \pvmNmoduleNmap'} &\equiv \begin{cases}
+                                  \tup{\blacktriangleright, \mathtt{FULL}, \pvmNmoduleNmap} &\when \len{\mathbf{H}} \ge 128 \\
+                                  \tup{\panic, \registers_7, \pvmNmoduleNmap} &\otherwhen \mathbf{p} = \error \\
+                                  \tup{\blacktriangleright, \mathtt{NONE}, \pvmNmoduleNmap} &\otherwhen m = 1 \wedge \mathbf{p} = \none \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \pvmNmoduleNmap} &\otherwhen \mathbf{p} = \none \vee \text{deblob}(\mathbf{p}, 0) = \error \\
+                                  \tup{\blacktriangleright, k, \pvmNmoduleNmap \cup \set{\kv{k}{\mathbf{p}}} } &\otherwise \\
                                 \end{cases} \\
-                                g &\equiv \CgasMconst + \fnmemgas(\CgasMlinear, p_Z)
+                                g &\equiv \begin{cases}
+                                  \CgasGammamemconst + \fnmemgas(\CgasGammamemlinear, l) &\when m = 0 \\
+                                  \CgasGammadbconst + \fnmemgas(\CgasGammadblinear, l) &\when m = 1 \\
+                                  \CgasGammamemconst &\otherwise
+                                \end{cases}
                               \end{aligned}$
   (lr)1-1(lr)2-2            
-  `peek` = 10               $\begin{aligned}
+  `machine` = 10            $\begin{aligned}
+                                \using \sq{h, i} &= \registers\subrange{7}{2} \\
+                                \using n &= \min(n \in \N : n \not\in \keys{\mathbf{m}}) \\
+                                \using \mathbf{u} &= \tup{\is{\ramNvalue}{[0, 0, \dots]},\is{\ramNaccess}{[\none, \none, \dots]}} \\
+                                \tup{\execst', \registers'_7, \mathbf{m}'} &\equiv \begin{cases}
+                                  \tup{\blacktriangleright, \mathtt{FULL}, \mathbf{m}} &\when \len{\mathbf{m}} \ge 63 \\
+                                  \tup{\blacktriangleright, \mathtt{WHO}, \mathbf{m}} &\otherwhen h \not\in \keys{\pvmNmoduleNmap} \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \mathbf{m}} &\otherwhen \text{deblob}(\pvmNmoduleNmap\subb{h}, i) = \error \\
+                                  \tup{\blacktriangleright, n, \mathbf{m} \cup \set{\kv{n}{\tup{\pvmNmoduleNmap\subb{h}, \mathbf{u}, i, \bot, h}}} } &\otherwise \\
+                                \end{cases} \\
+                                g &\equiv \CgasM
+                              \end{aligned}$
+  (lr)1-1(lr)2-2            
+  `peek` = 11               $\begin{aligned}
                                 \using \sq{n, o, s, z} &= \registers\subrange{7}{4} \\
                                 \tup{\execst', \registers'_7, {\memory}'} &\equiv \begin{cases}
                                   \tup{\panic, \registers_7, {\memory}} &\when \Nrange{o}{z} \not\subseteq \writable{\memory} \\
@@ -4371,7 +4397,7 @@ These assume some refine context pair $\tup{\mathbf{m}, \mathbf{e}} \in \tuple{\
                                 g &\equiv \CgasPconst + \fnmemgas(\CgasPlinear, z)
                               \end{aligned}$
   (lr)1-1(lr)2-2            
-  `poke` = 11               $\begin{aligned}
+  `poke` = 12               $\begin{aligned}
                                 \using \sq{n, s, o, z} &= \registers\subrange{7}{4} \\
                                 \tup{\execst', \registers'_7, \mathbf{m}'} &\equiv \begin{cases}
                                   \tup{\panic, \registers_7, \mathbf{m}} &\when \Nrange{s}{z} \not\subseteq \readable{\memory} \\
@@ -4383,7 +4409,7 @@ These assume some refine context pair $\tup{\mathbf{m}, \mathbf{e}} \in \tuple{\
                                 g &\equiv \CgasOconst + \fnmemgas(\CgasOlinear, z)
                               \end{aligned}$
   (lr)1-1(lr)2-2            
-  `pages` = 12              $\begin{aligned}
+  `pages` = 13              $\begin{aligned}
                                 \using \sq{n, p, c, r} &= \registers\subrange{7}{4} \\
                                 \using \mathbf{u} &= \begin{cases}
                                   \mathbf{m}\subb{n}_\pgNram &\when n \in \keys{\mathbf{m}} \\
@@ -4414,7 +4440,7 @@ These assume some refine context pair $\tup{\mathbf{m}, \mathbf{e}} \in \tuple{\
                                 \end{cases}
                               \end{aligned}$
   (lr)1-1(lr)2-2            
-  `invoke` = 13             $\begin{aligned}
+  `invoke` = 14             $\begin{aligned}
                                 \using \sq{n, o} &= \registers_{7, 8} \\
                                 \using \tup{g_R, \mathbf{w}} &= \begin{cases}
                                   \tup{g_R, \mathbf{w}}: \encode[8]{g_R} \concat \encode[8]{\mathbf{w}} = {\memory}\subrange{o}{112} &\when \Nrange{o}{112} \subseteq \writable{{\memory}} \\
@@ -4447,11 +4473,13 @@ These assume some refine context pair $\tup{\mathbf{m}, \mathbf{e}} \in \tuple{\
                                 \end{cases}
                               \end{aligned}$
   (lr)1-1(lr)2-2            
-  `expunge` = 14            $\begin{aligned}
-                                \using n &= \registers_7 \\
-                                \tup{\registers'_7, \mathbf{m}'} &\equiv \begin{cases}
-                                  \tup{\mathtt{WHO}, \mathbf{m}} &\when n \not\in \keys{\mathbf{m}} \\
-                                  \tup{\mathbf{m}\subb{n}_\pgNpc, \mathbf{m} \setminus n} &\otherwise \\
+  `expunge` = 15            $\begin{aligned}
+                                \using \sq{m, n} &= \registers_{7, 8} \\
+                                \tup{\registers'_7, \mathbf{m}', \pvmNmoduleNmap'} &\equiv \begin{cases}
+                                  \tup{\mathtt{WHO}, \mathbf{m}, \pvmNmoduleNmap} &\when (m = 0 \wedge n \not\in \keys{\mathbf{m}}) \vee (m = 1 \wedge n \not\in \keys{\pvmNmoduleNmap}) \\
+                                  \tup{\mathbf{m}\subb{n}_\pgNpc, \mathbf{m} \setminus \set{n}, \pvmNmoduleNmap} &\otherwhen m = 0 \\
+                                  \tup{\mathtt{OK}, \mathbf{m}, \pvmNmoduleNmap \setminus \set{n}} &\otherwhen m = 1 \\
+                                  \tup{\mathtt{HUH}, \mathbf{m}, \pvmNmoduleNmap} &\otherwise \\
                                 \end{cases} \\
                                 g &\equiv \CgasX
                               \end{aligned}$
@@ -4572,7 +4600,7 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                                 g &\equiv \CgasI
                               \end{aligned}$
   (lr)1-1(lr)2-2            
-  `bless` = 15              $\begin{aligned}
+  `bless` = 16              $\begin{aligned}
                                 \using \sq{m, a, v, r, o, n} &= \registers\subrange{7}{6} \\
                                 \using \mathbf{a} &= \begin{cases}
                                   \decode[4]{\memory\subrange{a}{4\Ccorecount}} &\when \Nrange{a}{4\Ccorecount} \subseteq \readable{\memory} \\
@@ -4591,7 +4619,7 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                                 g &\equiv \CgasBconst + n \cdot \CgasBlinear
                               \end{aligned}$
   (lr)1-1(lr)2-2            
-  `assign` = 16             $\begin{aligned}
+  `assign` = 17             $\begin{aligned}
                                 \using \sq{c, o, a} &= \registers\subrange{7}{3} \\
                                 \using \mathbf{q} &= \begin{cases}
                                   \sq{\build{\memory\subrange{o + 32i}{32}}{i \orderedin \N_\Cauthqueuesize}} &\when \Nrange{o}{32\Cauthqueuesize} \subseteq \readable{\memory} \\
@@ -4607,7 +4635,7 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                                 g &\equiv \CgasA
                               \end{aligned}$
   (lr)1-1(lr)2-2            
-  `designate` = 17          $\begin{aligned}
+  `designate` = 18          $\begin{aligned}
                                 \using \sq{o, z} &= \registers\subrange{7}{2} \\
                                 \using \mathbf{v} &= \begin{cases}
                                   \sq{\build{\memory\subrange{o + 336i}{336}}{i \orderedin \N_z}} &\when \Nrange{o}{336z} \subseteq \readable{\memory} \\
@@ -4621,13 +4649,13 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                                 g &\equiv \CgasDconst + z \cdot \CgasDlinear
                               \end{aligned}$
   (lr)1-1(lr)2-2            
-  `checkpoint` = 18         $\begin{aligned}
+  `checkpoint` = 19         $\begin{aligned}
                                 \imY' &\equiv \imX \\
                                 \registers'_7 &\equiv \gascounter^* \\
                                 g &\equiv \CgasC
                               \end{aligned}$
   (lr)1-1(lr)2-2            
-  `new` = 19                $\begin{aligned}
+  `new` = 20                $\begin{aligned}
                                 \using s &= \begin{cases}
                                   \imX_\imNid &\when \registers_7 = 2^{64} - 1 \\
                                   \registers_7 &\otherwise
@@ -4670,6 +4698,7 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                                 \end{cases} \\
                                 \tup{\execst', \registers'_7, \imX'_\imNnextfreeid, (\imX'_\imNstate)_\psNaccounts, \imX'_\imNmodifiedaccounts} &\equiv \begin{cases}
                                   \tup{\panic, \registers_7, \imX_\imNnextfreeid, \mathbf{d}, \imX_\imNmodifiedaccounts} &\when \Nrange{o}{60} \not\subseteq \readable{\memory} \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNnextfreeid, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen l \not\in \preimagelen \\
                                   \tup{\blacktriangleright, \mathtt{WHO}, \imX_\imNnextfreeid, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen s \not\in \keys{\mathbf{d}} \\
                                   \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNnextfreeid, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen x > 3 \lor \neg p \lor (\saNgratis \ne 0 \wedge \imX_\imNid \ne (\imX_\imNstate)_\psNmanager) \\
                                   \tup{\blacktriangleright, \mathtt{CASH}, \imX_\imNnextfreeid, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen \mathbf{d}'\subb{s}_\saNbalance < 0 \lor \mathbf{d}'\subb{s}_\saNsupervisorbalance < 0 \lor {} \\
@@ -4680,7 +4709,7 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                                 g &\equiv \CgasN
                               \end{aligned}$
   (lr)1-1(lr)2-2            
-  `supervisor` = 28         $\begin{aligned}
+  `supervisor` = 29         $\begin{aligned}
                                 \using d &= \begin{cases}
                                   \imX_\imNid &\when \registers_7 = 2^{64} - 1 \\
                                   \registers_7 &\otherwise
@@ -4702,7 +4731,7 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                                 g &\equiv \CgasV
                               \end{aligned}$
   (lr)1-1(lr)2-2            
-  `upgrade` = 20            $\begin{aligned}
+  `upgrade` = 21            $\begin{aligned}
                                 \using d &= \begin{cases}
                                   \imX_\imNid &\when \registers_7 = 2^{64} - 1 \\
                                   \registers_7 &\otherwise
@@ -4727,7 +4756,7 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                                 g &\equiv \CgasU
                               \end{aligned}$
   (lr)1-1(lr)2-2            
-  `transfer` = 21           $\begin{aligned}
+  `transfer` = 22           $\begin{aligned}
                                 \using \dxNsource &= \begin{cases}
                                   \imX_\imNid &\when \registers_7 = 2^{64} - 1 \\
                                   \registers_7 &\otherwise
@@ -4782,7 +4811,7 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                                 g &\equiv \CgasT + t
                               \end{aligned}$
   (lr)1-1(lr)2-2            
-  `eject` = 22              $\begin{aligned}
+  `eject` = 23              $\begin{aligned}
                                 \using d &= \registers_7 \\
                                 \using \mathbf{d} &= (\imX_\imNstate)_\psNaccounts \\
                                 \using \mathbf{d}' &= \mathbf{d} \exc \abracegroup{
@@ -4798,7 +4827,7 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                                 g &\equiv \CgasJ
                               \end{aligned}$
   (lr)1-1(lr)2-2            
-  `query` = 23              $\begin{aligned}
+  `query` = 24              $\begin{aligned}
                                 \using \mathbf{s} &= \begin{cases}
                                   \imX_\imNself &\when \registers_7 = 2^{64} - 1 \\
                                   (\imX_\imNstate)_\psNaccounts\subb{\registers_7} &\otherwise
@@ -4810,7 +4839,7 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                                 \end{cases} \\
                                 \using \mathbf{a} &= \mathbf{s}_\saNrequests\subb{\tup{h, z}} \\
                                 \tup{\execst', \registers'_7, \registers'_8} &\equiv \begin{cases}
-                                  \tup{\blacktriangleright, \mathtt{HUH}, \registers_8} &\when z \not\in \bloblength \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \registers_8} &\when z \not\in \preimagelen \\
                                   \tup{\panic, \registers_7, \registers_8} &\otherwhen h = \error \\
                                   \tup{\blacktriangleright, \mathtt{WHO}, \registers_8} &\otherwhen \mathbf{s} = \none \\
                                   \tup{\blacktriangleright, \mathtt{NONE}, 0} &\otherwhen \mathbf{a} = \none \\
@@ -4822,7 +4851,7 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                                 g &\equiv \CgasQ
                               \end{aligned}$
   (lr)1-1(lr)2-2            
-  `solicit` = 24            $\begin{aligned}
+  `solicit` = 25            $\begin{aligned}
                                 \using d &= \begin{cases}
                                   \imX_\imNid &\when \registers_7 = 2^{64} - 1 \\
                                   \registers_7 &\otherwise
@@ -4840,7 +4869,7 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                                   \error &\otherwise\\
                                 \end{cases} \\
                                 \tup{\execst', \registers'_7, (\imX'_\imNstate)_\psNaccounts, \imX'_\imNmodifiedaccounts} &\equiv \begin{cases}
-                                  \tup{\blacktriangleright, \mathtt{HUH}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\when z \not \in \bloblength \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\when z \not \in \preimagelen \\
                                   \tup{\panic, \registers_7, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen h = \error \\
                                   \tup{\blacktriangleright, \mathtt{WHO}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen d \not\in \keys{\mathbf{d}} \\
                                   \tup{\blacktriangleright, \mathtt{HUH}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen \imX_\imNid \not\in \set{d, \effectivesupervisor{\mathbf{d}}{d}} \lor \mathbf{d}' = \error \\
@@ -4850,7 +4879,7 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                                 g &\equiv \CgasS
                               \end{aligned}$
   (lr)1-1(lr)2-2            
-  `forget` = 25             $\begin{aligned}
+  `forget` = 26             $\begin{aligned}
                                 \using d &= \begin{cases}
                                   \imX_\imNid &\when \registers_7 = 2^{64} - 1 \\
                                   \registers_7 &\otherwise
@@ -4875,7 +4904,7 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                                   \error &\otherwise\\
                                 \end{cases} \\
                                 \tup{\execst', \registers'_7, (\imX'_\imNstate)_\psNaccounts, \imX'_\imNmodifiedaccounts} &\equiv \begin{cases}
-                                  \tup{\blacktriangleright, \mathtt{HUH}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\when z \not \in \bloblength \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\when z \not \in \preimagelen \\
                                   \tup{\panic, \registers_7, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen h = \error \\
                                   \tup{\blacktriangleright, \mathtt{WHO}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen d \not\in \keys{\mathbf{d}} \\
                                   \tup{\blacktriangleright, \mathtt{HUH}, \mathbf{d}, \imX_\imNmodifiedaccounts} &\otherwhen \imX_\imNid \not\in \set{d, \effectivesupervisor{\mathbf{d}}{d}} \lor \mathbf{d}' = \error \\
@@ -4884,7 +4913,7 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                                 g &\equiv \CgasF
                               \end{aligned}$
   (lr)1-1(lr)2-2            
-  `yield` = 26              $\begin{aligned}
+  `yield` = 27              $\begin{aligned}
                                 \using o &= \registers_7 \\
                                 \using h &= \begin{cases}
                                   \memory\subrange{o}{32} &\when \Nrange{o}{32} \subseteq \readable{\memory} \\
@@ -4897,7 +4926,7 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                                 g &\equiv \CgasTaurus
                               \end{aligned}$
   (lr)1-1(lr)2-2            
-  `provide` = 27            $\begin{aligned}
+  `provide` = 28            $\begin{aligned}
                                 \using \sq{o, z} &= \registers_{8, 9} \\
                                 \using \mathbf{d} &= (\imX_\imNstate)_\psNaccounts\\
                                 \using s &= \begin{cases}
@@ -4913,7 +4942,7 @@ These assume a context $\imXY \in \implications^2$; see equation [\[eq:implicati
                                   \none &\otherwise
                                 \end{cases} \\
                                 \tup{\execst', \registers'_7, \imX'_\imNprovisions} &\equiv \begin{cases}
-                                  \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNprovisions} &\when z \not \in \bloblength \\
+                                  \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNprovisions} &\when z \not \in \preimagelen \\
                                   \tup{\panic, \registers_7, \imX_\imNprovisions} &\otherwhen \mathbf{i} = \error \\
                                   \tup{\blacktriangleright, \mathtt{WHO}, \imX_\imNprovisions} &\otherwhen \mathbf{a} = \none \\
                                   \tup{\blacktriangleright, \mathtt{HUH}, \imX_\imNprovisions} &\otherwhen \mathbf{a}_\saNrequests[\tup{\blake{\mathbf{i}}, z}] \ne \sq{} \\
@@ -5702,6 +5731,10 @@ $\N$
 
     :   The set of blob length values. Equivalent to $\Nbits{32}$. See section [3.4](#sec:numbers){reference-type="ref" reference="sec:numbers"}.
 
+    $\preimagelen$
+
+    :   The set of lengths under which a preimage may be solicited. A subset of $\bloblength$, equivalent to $\Nmax{2^{32} - 2}$. See equation [\[eq:serviceaccount\]](#eq:serviceaccount){reference-type="ref" reference="eq:serviceaccount"}.
+
     $\pvmreg$
 
     :   The set of register values. Equivalent to $\Nbits{64}$. See equation [\[eq:gasregentry\]](#eq:gasregentry){reference-type="ref" reference="eq:gasregentry"}.
@@ -5776,7 +5809,7 @@ $\hash$
 
     :   The set of Bandersnatch public keys. A subset of $\blob[32]$. See section [3.8](#sec:cryptography){reference-type="ref" reference="sec:cryptography"} and appendix [30](#sec:bandersnatch){reference-type="ref" reference="sec:bandersnatch"}.
 
-$\innerpvm$
+$\pvmNinstance$
 
 :   The set representing the state of an $\mathbb{I}$nner [pvm]{.smallcaps} instance. See equation [\[eq:innerpvm\]](#eq:innerpvm){reference-type="ref" reference="eq:innerpvm"}.
 
@@ -6020,7 +6053,7 @@ $\Omega$
 
     $\Omega_X$
 
-    :   Expunge-[pvm]{.smallcaps} host-call.
+    :   Expunge an inner-[pvm]{.smallcaps} instance or a compiled program module host-call.
 
     $\Omega_Y$
 
@@ -6041,6 +6074,10 @@ $\Omega$
     $\Omega_\Gemini$
 
     :   Grow heap host-call.
+
+    $\Omega_\Gamma$
+
+    :   Compile host-call.
 
 ## I.3 Utilities, Externalities and Standard Functions {#utilities-externalities-and-standard-functions}
 
@@ -6640,13 +6677,9 @@ $\CgasLlinear = 248$
 
 :   $\Omega_L$ (`lookup`) gas per 1024 octets ($\fnmemgas(\CgasLlinear, \ell)$).
 
-$\CgasMconst = 1862$
+$\CgasM = 1862$
 
-:   $\Omega_M$ (`machine`) base gas cost.
-
-$\CgasMlinear = 112$
-
-:   $\Omega_M$ (`machine`) gas per 1024 octets, program size ($\fnmemgas(\CgasMlinear, \ell)$).
+:   $\Omega_M$ (`machine`) gas cost.
 
 $\CgasN = 3855$
 
@@ -6831,6 +6864,22 @@ $\CgasGeminiconst = 275$
 $\CgasGeminilinear = 121$
 
 :   $\Omega_\Gemini$ (`grow_heap`) gas per additional page.
+
+$\CgasGammamemconst = 1862$
+
+:   $\Omega_\Gamma$ (`compile`) base gas cost when compiling from memory.
+
+$\CgasGammadbconst = 1862$
+
+:   $\Omega_\Gamma$ (`compile`) base gas cost when compiling from the database.
+
+$\CgasGammamemlinear = 264$
+
+:   $\Omega_\Gamma$ (`compile`) in-memory read gas per 1024 octets ($\fnmemgas(\CgasGammamemlinear, \ell)$).
+
+$\CgasGammadblinear = 366$
+
+:   $\Omega_\Gamma$ (`compile`) database lookup read gas per 1024 octets ($\fnmemgas(\CgasGammadblinear, \ell)$).
 
 ### I.4.6 Signing Contexts {#signing-contexts}
 
