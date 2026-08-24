@@ -4,7 +4,7 @@ subtitle: "A Mostly-Coherent Trustless Supercomputer"
 author: "Dr. Gavin Wood"
 version: "0.8.0"
 date: "unknown"
-hash: "07aee1ef23b63f93d0e2f29e53560cbc7c8c767c"
+hash: "3aa83a7f2eb249abac8e6b8fce7b1d1cae525534"
 ---
 
 We present a comprehensive and formal definition of JAM, a protocol combining elements of both *Polkadot* and *Ethereum*. In a single coherent model, JAM provides a global singleton permissionless object environment---much like the smart-contract environment pioneered by Ethereum---paired with secure sideband computation parallelized over a scalable node network, a proposition pioneered by Polkadot.
@@ -5564,7 +5564,7 @@ Since it is often useful to shuffle a sequence based on some random seed in the 
 
 The Bandersnatch curve is defined by [@cryptoeprint:2021/1152].
 
-The singly-contextualized Bandersnatch Schnorr-like signatures $\bssignature{k}{c}{m}$ are defined as a formulation under the *IETF* [vrf]{.smallcaps} template specified by [@hosseini2024bandersnatch] (as IETF VRF) and further detailed by [@rfc9381].
+The singly-contextualized Bandersnatch Schnorr-like signatures $\bssignature{k}{c}{m}$ are defined as a formulation under the *Thin* [vrf]{.smallcaps} template specified by [@hosseini2024bandersnatch], itself loosely inspired by the [ietf]{.smallcaps} [ecvrf]{.smallcaps} of [@rfc9381].
 
 $$\begin{aligned}
   \bssignature{k \in \bskey}{c \in \blob}{m \in \blob} \subset \blob[96] &\equiv \set{\build{x}{x \in \blob[96], \text{verify}(k, c, m, x) = \top }}  \\
