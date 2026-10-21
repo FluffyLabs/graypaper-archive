@@ -4,7 +4,7 @@ subtitle: "A Mostly-Coherent Trustless Supercomputer"
 author: "Dr. Gavin Wood"
 version: "0.8.0"
 date: "unknown"
-hash: "e5375148597a45a99d31c9aa6bce6c7bf3a48998"
+hash: "1fa8cbc7e7ec3e60d09f8e704911a89c6837ce1d"
 ---
 
 We present a comprehensive and formal definition of JAM, a protocol combining elements of both *Polkadot* and *Ethereum*. In a single coherent model, JAM provides a global singleton permissionless object environment---much like the smart-contract environment pioneered by Ethereum---paired with secure sideband computation parallelized over a scalable node network, a proposition pioneered by Polkadot.
@@ -2810,10 +2810,12 @@ We declare the general [pvm]{.smallcaps} function $\Psi$. We assume a single-ste
       \tup{\panic, \imath, \gascounter, \gaschargedflag, \registers, {\memory}} &\otherwise
     \end{cases}
   }\\
+  \label{eq:deblob}
   \text{deblob}&\colon\abracegrouptwo{
     (\blob, \pvmreg) &\to \tuple{\blob, \bitstring, \sequence{\pvmreg}} \cup \error \\
     (\pvmNblob, \imath) &\mapsto \begin{cases}
-      \tup{\mathbf{c}, \mathbf{k}, \mathbf{j}} &\when \exists!\,\mathbf{c}, \mathbf{k}, \mathbf{j} : \pvmNblob = \encode{\len{\mathbf{j}}} \concat \encode[1]{z} \concat \encode{\len{\mathbf{c}}} \concat \encode[z]{\mathbf{j}} \concat \encode{\mathbf{c}} \concat \encode{\mathbf{k}}\,,\ \mathfrak{v}_{\text{blob}}(\mathbf{c}, \mathbf{k}, 0) \land \mathfrak{v}_{\text{inst}}(\mathbf{c}, \mathbf{k}, \imath) \\
+      \tup{\mathbf{c}, \mathbf{k}, \mathbf{j}} &\when \exists!\,\mathbf{c} \in \blob[:\Cpvmmaxcodesize], \mathbf{k} \in \bitstring, \mathbf{j} \in \sequence[:\Cpvmmaxjumptableentries]{\pvmreg} :\\
+      &\quad \pvmNblob = \encode{\len{\mathbf{j}}} \concat \encode[1]{z} \concat \encode{\len{\mathbf{c}}} \concat \encode[z]{\mathbf{j}} \concat \encode{\mathbf{c}} \concat \encode{\mathbf{k}}\,,\ z \le 4 \land \mathfrak{v}_{\text{blob}}(\mathbf{c}, \mathbf{k}, 0) \land \mathfrak{v}_{\text{inst}}(\mathbf{c}, \mathbf{k}, \imath) \\
       \error &\otherwise
     \end{cases} \\
   }{
@@ -3562,7 +3564,7 @@ $$\begin{aligned}
   &\quad a \oplus b \equiv \bigwedge_{k \in \set{\text{A}, \text{L}, \text{S}, \text{M}, \text{D}}} a_k \oplus b_k
 \end{aligned}$$
 
-We define the function $\check{s}(\mathbf{c}, \mathbf{k}, \imath)$ which returns the set of source registers read by the instruction at $\imath$, and the function $\check{r}(\mathbf{c}, \mathbf{k}, \imath)$ which returns the set of destination registers written by the instruction at $\imath$, as described by the equations in [24.5](#sec:instructiontables){reference-type="ref" reference="sec:instructiontables"}. This is regardless of whether those registers would actually have been modified by that instruction when executed at runtime. is assumed to neither read nor write to any registers in this model.
+We define the function $\check{s}(\mathbf{c}, \mathbf{k}, \imath)$ which returns the set of source registers read by the instruction at $\imath$, and the function $\check{r}(\mathbf{c}, \mathbf{k}, \imath)$ which returns the set of destination registers written by the instruction at $\imath$, as described by the equations in [24.5](#sec:instructiontables){reference-type="ref" reference="sec:instructiontables"}. This is regardless of whether those registers would actually have been modified by that instruction when executed at runtime. is assumed to neither read nor write to any registers in this model. The destination register of the , , and instructions is also counted as a source register.
 
 We also define the function $\check{c}(\mathbf{c}, \mathbf{k}, \imath)$ which returns the number of cycles the instruction at $\imath$ needs to finish execution, $\check{d}(\mathbf{c}, \mathbf{k}, \imath)$ which returns the number of decoding slots necessary to decode it, and $\check{x}(\mathbf{c}, \mathbf{k}, \imath)$ which returns the number of virtual CPU execution units required to start its execution. These simply return the values as specified in [24.10](#sec:gascosttables){reference-type="ref" reference="sec:gascosttables"}.
 
@@ -6593,9 +6595,17 @@ $\Cpvmdynaddralign = 2$
 
 :   The [pvm]{.smallcaps} dynamic address alignment factor. See equation [\[eq:jumptablealignment\]](#eq:jumptablealignment){reference-type="ref" reference="eq:jumptablealignment"}.
 
+$\Cpvmmaxcodesize = 2^{25}$
+
+:   The maximum size of the instruction data of a [pvm]{.smallcaps} program blob, in octets. See equation [\[eq:deblob\]](#eq:deblob){reference-type="ref" reference="eq:deblob"}.
+
 $\Cpvminitinputsize = 2^{24}$
 
 :   The standard [pvm]{.smallcaps} program initialization input data size. See equation [24.7](#sec:standardprograminit){reference-type="ref" reference="sec:standardprograminit"}.
+
+$\Cpvmmaxjumptableentries = 2^{24}$
+
+:   The maximum number of entries in the dynamic jump table of a [pvm]{.smallcaps} program blob. See equation [\[eq:deblob\]](#eq:deblob){reference-type="ref" reference="eq:deblob"}.
 
 $\Cpvmpagesize = 2^{12}$
 
