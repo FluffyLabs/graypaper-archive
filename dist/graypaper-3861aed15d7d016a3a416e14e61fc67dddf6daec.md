@@ -4,7 +4,7 @@ subtitle: "A Mostly-Coherent Trustless Supercomputer"
 author: "Dr. Gavin Wood"
 version: "0.8.0"
 date: "unknown"
-hash: "1fa8cbc7e7ec3e60d09f8e704911a89c6837ce1d"
+hash: "3861aed15d7d016a3a416e14e61fc67dddf6daec"
 ---
 
 We present a comprehensive and formal definition of JAM, a protocol combining elements of both *Polkadot* and *Ethereum*. In a single coherent model, JAM provides a global singleton permissionless object environment---much like the smart-contract environment pioneered by Ethereum---paired with secure sideband computation parallelized over a scalable node network, a proposition pioneered by Polkadot.
@@ -572,7 +572,7 @@ The extrinsic hash is a Merkle commitment to the block's extrinsic data, taking 
     \tup{\xpNserviceindex, \xpNdata} \orderedin \xtpreimages
   }}}} \\
   \also \mathbf{g} &= \encode{\var{\sq{\build{
-    \tup{\blake{\gNworkreport}, \encode[4]{\gNtimeslot}, \var{\gNcredential}}
+    \tup{\blake{\gNworkreport}, \encode[4]{\gNtimeslot}, \encodecredentials{\gNcredential}}
   }{
     \tup{\gNworkreport, \gNtimeslot, \gNcredential} \orderedin \xtguarantees
   }}}}\end{aligned}$$
@@ -5171,7 +5171,11 @@ $$\begin{aligned}
   \encode{\gX \in \guarantee} &\equiv \encode{
     \gX_\gNworkreport,
     \encode[4]{\gX_\gNtimeslot},
-    \var{\sq{\build{\tup{\encode[2]{v}, s}}{\tup{v, s} \orderedin \gX_\gNcredential}}}
+    \encodecredentials{\gX_\gNcredential}
+  }
+  \\
+  \encodecredentials{\gNcredential} &\equiv \encode{
+    \var{\sq{\build{\tup{\encode[2]{v}, s}}{\tup{v, s} \orderedin \gNcredential}}}
   }
   \\
   \encode{\wpX \in \workpackage} &\equiv \encode{
