@@ -4,7 +4,7 @@ subtitle: "A Mostly-Coherent Trustless Supercomputer"
 author: "Dr. Gavin Wood"
 version: "0.8.0"
 date: "unknown"
-hash: "44e0b1154ec1f556354b92b8ee58d097c2038167"
+hash: "519504c363f2bfcc1f6371ebffe3d2adaaa58e44"
 ---
 
 We present a comprehensive and formal definition of JAM, a protocol combining elements of both *Polkadot* and *Ethereum*. In a single coherent model, JAM provides a global singleton permissionless object environment---much like the smart-contract environment pioneered by Ethereum---paired with secure sideband computation parallelized over a scalable node network, a proposition pioneered by Polkadot.
@@ -322,7 +322,7 @@ Broadly speaking, JAM (and indeed blockchains in general) may be defined simply 
 
 To aid comprehension and definition of our protocol, we partition as many of our terms as possible into their functional components. We begin with the block $\block$ which may be restated as the header $\H$ and some input data external to the system and thus said to be *extrinsic*, $\extrinsic$: $$\begin{aligned}
   \label{eq:block}\block &\equiv \tup{\header, \extrinsic} \\
-  \label{eq:extrinsic}\extrinsic &\equiv \tup{\xttickets, \xtdisputes, \xtpreimages, \xtassurances, \xtguarantees}\end{aligned}$$
+  \label{eq:extrinsic}\extrinsic &\equiv \tup{\xttickets, \xtpreimages, \xtguarantees, \xtassurances, \xtdisputes}\end{aligned}$$
 
 The header is a collection of metadata primarily concerned with cryptographic references to the blockchain ancestors and the operands and result of the present transition. As an immutable known *a priori*, it is assumed to be available throughout the functional components of block transition. The extrinsic data is split into its several portions:
 
