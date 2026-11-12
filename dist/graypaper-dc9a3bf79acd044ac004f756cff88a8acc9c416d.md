@@ -4,7 +4,7 @@ subtitle: "A Mostly-Coherent Trustless Supercomputer"
 author: "Dr. Gavin Wood"
 version: "0.8.0"
 date: "unknown"
-hash: "43f328c9717a62b40ae4582ddb7e390ddb4197eb"
+hash: "dc9a3bf79acd044ac004f756cff88a8acc9c416d"
 ---
 
 We present a comprehensive and formal definition of JAM, a protocol combining elements of both *Polkadot* and *Ethereum*. In a single coherent model, JAM provides a global singleton permissionless object environment---much like the smart-contract environment pioneered by Ethereum---paired with secure sideband computation parallelized over a scalable node network, a proposition pioneered by Polkadot.
@@ -934,11 +934,8 @@ Thus, the balance of the service of index $s$ would be denoted $\accounts\subb{s
 
 ## 9.1 Code and Gas
 
-The code and associated metadata of a service account is identified by a hash which, if the service is to be functional, must be present within its preimage lookup (see section [9.2](#sec:lookups){reference-type="ref" reference="sec:lookups"}) and have a preimage which is a proper encoding of the two blobs. We thus define the actual code $\saNcode$ and metadata $\saNmetadata$: $$\begin{aligned}
-  \forall \mathbf{a} \in \serviceaccount : \tup{\mathbf{a}_\saNmetadata, \mathbf{a}_\saNcode} \equiv \begin{cases}
-    \tup{\mathbf{m}, \mathbf{c}} &\when \encode{\var{\mathbf{m}}, \mathbf{c}} = \mathbf{a}_\saNpreimages[\mathbf{a}_\saNcodehash] \\
-    \tup{\none, \none} &\otherwise
-  \end{cases}\end{aligned}$$
+The code of a service account is identified by a hash which, if the service is to be functional, must be present within its preimage lookup (see section [9.2](#sec:lookups){reference-type="ref" reference="sec:lookups"}). We thus define the actual code $\saNcode$: $$\begin{aligned}
+  \forall \mathbf{a} \in \serviceaccount : \mathbf{a}_\saNcode \equiv \mathbf{a}_\saNpreimages[\mathbf{a}_\saNcodehash]\end{aligned}$$ To be functional, service code must follow the standard JAM program blob format, defined in appendix [24.7](#sec:standardprograminit){reference-type="ref" reference="sec:standardprograminit"}.
 
 There are two entry-points in the code:
 
@@ -2249,8 +2246,7 @@ Given the result $\wdNresult$ and gas used $\wdNgasused$ of some work-item, we d
 
 We define the work-package's implied authorizer as $\wpX_\wpNauthorizer$, the hash of the authorization code hash concatenated with the configuration. We define the authorization code as $\wpX_\wpNauthcode$ and require that it be available at the time of the lookup anchor block from the historical lookup of service $\wpX_\wpNauthcodehost$. Formally: $$\forall \wpX \in \workpackage: \abracegroup[\,]{
     \wpX_\wpNauthorizer &\equiv \blake{\wpX_\wpNauthcodehash \concat \wpX_\wpNauthconfig} \\
-    \encode{\var{\wpX_\wpNmetadata}, \wpX_\wpNauthcode} &\equiv \histlookup(\accounts\subb{\wpX_\wpNauthcodehost}, (\wpX_\wpNcontext)_\wcNlookupanchortime, \wpX_\wpNauthcodehash) \\
-    \tup{\wpX_\wpNmetadata, \wpX_\wpNauthcode} &\in \tuple{\blob, \blob}
+    \wpX_\wpNauthcode &\equiv \histlookup(\accounts\subb{\wpX_\wpNauthcodehost}, (\wpX_\wpNcontext)_\wcNlookupanchortime, \wpX_\wpNauthcodehash)
   }$$
 
 (The historical lookup function, $\histlookup$, is defined in equation [\[eq:historicallookup\]](#eq:historicallookup){reference-type="ref" reference="eq:historicallookup"}.)
@@ -3436,14 +3432,15 @@ The software programs which will run in each of the three instances where the [p
 We thus define the standard JAM program blob format $\jamNblob$, which includes not only the raw [pvm]{.smallcaps} program blob $\pvmNblob$, but also information on the state of the [ram]{.smallcaps} at program start. Given JAM program blob $\jamNblob$ and argument data $\mathbf{a}$, we can decode the [pvm]{.smallcaps} program blob $\pvmNblob$, registers $\registers$, and [ram]{.smallcaps} ${\memory}$ by invoking the standard initialization function $Y(\jamNblob, \mathbf{a})$: $$Y\colon\abracegroup{
   \tuple{\blob, \blob[:\Cpvminitinputsize]} &\to \tuple{\blob, \sequence[13]{\pvmreg}, \ram}? \\
   \tup{\jamNblob, \mathbf{a}} &\mapsto \begin{cases}
-    \tup{\pvmNblob, \registers, {\memory}} &\when \exists! \tup{\pvmNblob, \mathbf{o}, \mathbf{w}, z, s} \text{ which satisfy equation \ref{eq:conditions}}\\
+    \tup{\pvmNblob, \registers, {\memory}} &\when \exists! \tup{\pvmNblob, \mathbf{o}, \mathbf{w}, z, s} \text{ which satisfy equations \ref{eq:jamblobformat} and \ref{eq:ramlayoutfits}}\\
     \none &\otherwise
   \end{cases}
 }$$ With conditions: $$\begin{aligned}
-\label{eq:conditions}
-  &\using \mathcal{E}_3(\len{\mathbf{o}}) \concat \mathcal{E}_3(\len{\mathbf{w}}) \concat \mathcal{E}_2(z) \concat \mathcal{E}_3(s) \concat \mathbf{o} \concat \mathbf{w} \concat \mathcal{E}_4(\len{\pvmNblob}) \concat \pvmNblob = \jamNblob\\
+\label{eq:jamblobformat}
+  &\using \encode{\var{\mathbf{m}}} \concat \mathcal{E}_3(\len{\mathbf{o}}) \concat \mathcal{E}_3(\len{\mathbf{w}}) \concat \mathcal{E}_2(z) \concat \mathcal{E}_3(s) \concat \mathbf{o} \concat \mathbf{w} \concat \mathcal{E}_4(\len{\pvmNblob}) \concat \pvmNblob = \jamNblob\\
   &\Cpvminitzonesize = 2^{16}\ ,\quad\Cpvminitinputsize = 2^{24}\\
   &\using \rnp{x \in \N} \equiv \Cpvmpagesize\ceil{ \frac{x}{\Cpvmpagesize} }\quad,\qquad\rnq{x \in \N} \equiv \Cpvminitzonesize\ceil{ \frac{x}{\Cpvminitzonesize} }\\
+  \label{eq:ramlayoutfits}
   &5\Cpvminitzonesize + \rnq{\len{\mathbf{o}}} + \rnq{\len{\mathbf{w}} + z\Cpvmpagesize} + \rnq{s} + \Cpvminitinputsize \leq 2^{32}\end{aligned}$$ Thus, if the above conditions cannot be satisfied with unique values, then the result is $\none$, otherwise it is a tuple of $\pvmNblob$ as above and ${\memory}$, $\registers$ such that: $$\label{eq:memlayout}
   \forall i \in \Nbits{32} : (({\memory}_\ramNvalue)\sub{i}, ({\memory}_\ramNaccess)_{\floor{\nicefrac{i}{\Cpvmpagesize}}}) = \bracegroup{\begin{alignedat}{5}
     &\tup{\is{\ramNvalue}{\mathbf{o}_{i - \Cpvminitzonesize}},\,\is{\ramNaccess}{R}} &&\ \when
@@ -3482,7 +3479,7 @@ We thus define the standard JAM program blob format $\jamNblob$, which includes 
       2^{32} - \Cpvminitzonesize - \Cpvminitinputsize &\when i = 7\\
       \len{\mathbf{a}}&\when i = 8\\
       0 &\otherwise
-    \end{cases}$$
+    \end{cases}$$ Note that the JAM program blob format includes an opaque metadata section at the start, denoted by $\mathbf{m}$ in equation [\[eq:jamblobformat\]](#eq:jamblobformat){reference-type="ref" reference="eq:jamblobformat"}. The metadata is ignored by the core JAM protocol and so $\mathbf{m}$ is not returned by $Y$.
 
 ## A.8 Argument Invocation Definition {#argument-invocation-definition}
 
@@ -3983,14 +3980,14 @@ Unlike the other invocation functions, the Refine invocation function implicitly
     \label{eq:refinvocation}
     \tuple{\coreindex, \N, \workpackage, \blob, \sequence{\sequence{\segment}}, \N} &\to \tuple{\blob \cup \workerror, \sequence{\segment}, \gas} \\
     \tup{c, i, p, \mathbf{r}, \overline{\mathbf{i}}, \segoff} &\mapsto \begin{cases}
-      \tup{\token{BAD}, \sq{}, 0} &\when w_\wiNserviceindex \not\in \keys{\accounts} \vee \histlookup(\accounts\subb{w_\wiNserviceindex}, (p_\wpNcontext)_\wcNlookupanchortime, w_\wiNcodehash) = \none \\
-      \tup{\token{BIG}, \sq{}, 0} &\otherwhen \len{\histlookup(\accounts\subb{w_\wiNserviceindex}, (p_\wpNcontext)_\wcNlookupanchortime, w_\wiNcodehash)} > \Cmaxservicecodesize \\
+      \tup{\token{BAD}, \sq{}, 0} &\when w_\wiNserviceindex \not\in \keys{\accounts} \vee \jamNblob = \none \\
+      \tup{\token{BIG}, \sq{}, 0} &\otherwhen \len{\jamNblob} > \Cmaxservicecodesize \\
       &\otherwise: \\
-      &\quad\using \mathbf{a} = \encode{c, i, w_\wiNserviceindex, \var{w_\wiNpayload}, \blake{p}}\;,\ \encode{\var{\mathbf{z}}, \jamNblob} = \histlookup(\accounts\subb{w_\wiNserviceindex}, (p_\wpNcontext)_\wcNlookupanchortime, w_\wiNcodehash)\\
+      &\quad\using \mathbf{a} = \encode{c, i, w_\wiNserviceindex, \var{w_\wiNpayload}, \blake{p}}\\
       &\quad\also \tup{u, \mathbf{o}, \tup{\mathbf{m}, \pvmNmoduleNmap, \mathbf{e}}} = \Psi_M(\jamNblob, 0, w_\wiNrefgaslimit, \mathbf{a}, F, \tup{\emptyset, \emptyset, \sq{}})\ \colon\\
       \tup{\mathbf{o}, \sq{}, u} &\quad\when \mathbf{o} \in \set{ \oog, \panic }  \\
       \tup{\mathbf{o}, \mathbf{e}, u} &\quad\otherwise \\
-      \multicolumn{2}{l}{\where w = p_\wpNworkitems\subb{i}}
+      \multicolumn{2}{l}{\where w = p_\wpNworkitems\subb{i}\;,\ \jamNblob = \histlookup(\accounts\subb{w_\wiNserviceindex}, (p_\wpNcontext)_\wcNlookupanchortime, w_\wiNcodehash)}
     \end{cases} \\
   } \\
   \label{eq:refinemutator}
@@ -4207,7 +4204,7 @@ These make no assumptions about the context $\context$; it is always passed thro
                                 % of whether anything has changed.
                                 %
                                 % Extract the RO data size and the stack size from the JAM program blob.
-                                \using (\mathbf{o}, s) &\mapsto \jamNblob \text{ according to eq. \ref{eq:conditions}} \\
+                                \using (\mathbf{o}, s) &\mapsto \jamNblob \text{ according to eq. \ref{eq:jamblobformat}} \\
                                 % Page index of the start of the RW data region.
                                 \using a &= \frac{2\Cpvminitzonesize + \rnq{\len{\mathbf{o}}}}{\Cpvmpagesize} \\
                                 % Page index plus one of the last possible RW data region page.
@@ -5706,27 +5703,25 @@ Every message word $m\sub{i}=m_{i, 15} \ldots m\sub{i, 0}$ consists of 16 bits. 
 
 Where $m_{i, 0}$ is the least significant bit of message word $m\sub{i}$. Accordingly we consider the field element $\widetilde{m\sub{i}} = \sum^{15}_{j = 0} m\sub{i, j} v\sub{j}$ to represent that message word.
 
-Similarly, we assign a unique index to each validator between 0 and $v - 1$ and we represent validator $i$ with the field element: $$\tilde{i} = \sum^{15}_{j = 0} i\sub{j} v\sub{j}$$
-
-where $i = i_{15} \ldots i_0$ is the binary representation of $i$.
+Similarly, we assign each of the $v$ validators a unique index in $\Nmax{v}$.
 
 ## H.3 The Generator Polynomial {#the-generator-polynomial}
 
-To erasure code a message of $d = \fnecoriginalshards(v)$ words into $v$ code words, we represent each message as a field element as described in previous section and we interpolate the polynomial $p(y)$ of maximum $d - 1$ degree which satisfies the following equalities: $$\begin{array}{l}
+To erasure code $d = \fnecoriginalshards(v)$ message words into $v$ code words, let $d' = 2^{\ceil{\log_2 d}}$ and $v' = v + d' - d$. We index the code words by indices in $I$ as defined: $$I \equiv \Z\interval{0}{d} \cup \Z\interval{d'}{v'}$$ and deliver the code word at index $i \in I$ to validator $f(i)$, where: $$f(i) \equiv \begin{cases} i & i < d \\ i - (d' - d) & i \geq d' \end{cases}$$
+
+Each index $i \in \Z\interval{0}{v'}$ is represented by the field element: $$\tilde{i} = \sum^{15}_{j = 0} i\sub{j} v\sub{j}$$ where $i = i_{15} \ldots i_0$ is the binary representation of $i$.
+
+We represent each message word as a field element as described in the previous section and interpolate the polynomial $p(y)$ of maximum degree $d' - 1$ satisfying: $$\begin{array}{l}
      p (\tilde{0}) = \widetilde{m_0}\\
      p (\tilde{1}) = \widetilde{m_1}\\
      \vdots\\
-     p (\widetilde{d-1}) = \widetilde{m_{d-1}}
+     p (\widetilde{d-1}) = \widetilde{m_{d-1}}\\
+     p (\tilde{\imath}) = 0 \quad \forall i \in \Z\interval{d}{d'}
    \end{array}$$
 
-After finding $p(y)$ with such properties, we evaluate $p$ at the following points: $$\begin{array}{l}
-     \widetilde{r_d} : = p (\widetilde{d})\\
-     \widetilde{r_{d+1}} : = p (\widetilde{d+1})\\
-     \vdots\\
-     \widetilde{r_{v-1}} : = p (\widetilde{v-1})
-   \end{array}$$
+After finding $p(y)$, we evaluate it at the remaining indices in $I$, namely $i \in \Z\interval{d'}{v'}$. The code word at index $i \in I$ is $p(\tilde{i})$ and is delivered to validator $f(i)$.
 
-We then distribute the message words and the extra code words among the validators according to their corresponding indices.
+Note that the code is systematic, i.e. $p(\tilde{i})$ is equal to $\widetilde{m_i}$ for $i < d$.
 
 # I Index of Notation {#sec:definitions}
 
