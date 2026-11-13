@@ -4,7 +4,7 @@ subtitle: "A Mostly-Coherent Trustless Supercomputer"
 author: "Dr. Gavin Wood"
 version: "0.8.0"
 date: "unknown"
-hash: "dc9a3bf79acd044ac004f756cff88a8acc9c416d"
+hash: "713a8154faef7b8317f85d3fbecbc6d1610630db"
 ---
 
 We present a comprehensive and formal definition of JAM, a protocol combining elements of both *Polkadot* and *Ethereum*. In a single coherent model, JAM provides a global singleton permissionless object environment---much like the smart-contract environment pioneered by Ethereum---paired with secure sideband computation parallelized over a scalable node network, a proposition pioneered by Polkadot.
@@ -2794,7 +2794,7 @@ We declare the general [pvm]{.smallcaps} function $\Psi$. We assume a single-ste
     \tuple{\blob, \pvmreg, \gas, \bool, \sequence[13]{\pvmreg}, \ram} &\to \tuple{\set{\halt, \panic, \oog} \cup \set{\fault, \host} \times \pvmreg, \pvmreg, \gas, \bool, \sequence[13]{\pvmreg}, \ram}\\
     \tup{\pvmNblob, \imath, \gascounter, \gaschargedflag, \registers, {\memory}} &\mapsto \begin{cases}
       \Psi(\pvmNblob, \imath', \gascounter', \gaschargedflag', \registers', {\memory}') &\when \varepsilon = \blacktriangleright\\
-      \tup{\varepsilon, 0, \gascounter', \gaschargedflag', \registers', {\memory}'} &\when \varepsilon \in \set{ \panic, \halt }\\
+      \tup{\varepsilon, 0, \gascounter', \bot, \registers', {\memory}'} &\when \varepsilon \in \set{ \panic, \halt }\\
       \tup{\varepsilon, \imath, \gascounter', \gaschargedflag', \registers, {\memory}} &\otherwise
     \end{cases} \\
     \where \tup{\varepsilon, \imath', \gascounter', \gaschargedflag', \registers', {\memory}'} &= \begin{cases}
