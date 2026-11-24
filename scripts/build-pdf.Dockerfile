@@ -1,5 +1,5 @@
-# The node image is running Debian
-FROM node:22
+# Debian 13's XeTeX renderer duplicates the page backgrounds and can exceed GitHub's file size limit.
+FROM node:26-bookworm
 
 # Set the environment to non-interactive
 ENV DEBIAN_FRONTEND=noninteractive

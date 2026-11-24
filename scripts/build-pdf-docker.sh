@@ -28,7 +28,7 @@ if [ "${1:-}" = "nightly" ]; then
 fi
 
 # Fetch docker images
-docker build -t gp-pdf-build \
+docker build --pull -t gp-pdf-build \
   -f ./scripts/build-pdf.Dockerfile .
 
 # Build PDF first

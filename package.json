@@ -8,6 +8,6 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "tsx": "^4.17.0"
+    "tsx": "^4.23.15"
   }
 }
