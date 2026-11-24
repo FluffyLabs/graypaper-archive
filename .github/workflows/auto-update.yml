@@ -19,7 +19,7 @@ jobs:
       release_tag: ${{steps.remote_release.outputs.VERSION}}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7.0.1
     - name: What's the latest graypaper release?
       id: remote_release
       run: |
@@ -53,7 +53,7 @@ jobs:
     if: needs.check_for_updates.outputs.has_updates == 'true'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
         with:
           submodules: 'true'
       - name: Checkout the release tag
